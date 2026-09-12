@@ -1,0 +1,53 @@
+# ===========================
+# Unity — PalSoul .gitignore
+# ===========================
+
+# Pastas geradas pelo Unity (nunca versionar)
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+
+# Arquivos de cache do Asset Store
+*.unitypackage
+
+# Arquivos de meta de pastas vazias (gerados automaticamente)
+# Manter os .meta de assets — são necessários para GUIDs
+# Exceto os de pastas vazias que não têm conteúdo trackeado:
+# (deixar o Unity gerar automaticamente)
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Crashlytics
+crashlytics-build.properties
+
+# Builds de saída
+*.apk
+*.aab
+*.exe
+*.dmg
+*.pkg
+
+# Newtonsoft cache
+[Pp]ackages/
+
+# JetBrains Rider
+*.DotSettings.user
