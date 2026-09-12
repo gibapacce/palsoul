@@ -133,14 +133,31 @@ namespace Palsoul.Combat
         }
 
         /// <summary>
-        /// Verifica se o hit é furtivo (atacante pelas costas do alvo não alertado).
-        /// Regra simplificada: dot product entre direção do ataque e forward do alvo > 0.5.
+        /// Verifica se o hit é furtivo (alvo não alertado = IsAlerted false).
+        /// Só aplica a EnemyControllers — player não recebe bônus furtivo de si mesmo.
+        /// GDD seção 5.1: dano bônus 2.5x ao acertar criatura/inimigo não alertado.
         /// </summary>
         private bool IsStealthHit(Transform target)
         {
-            // Considera furtivo se o alvo tem um EnemyController com IsAlerted = false
-            // (MVP 4 adicionará isso — por enquanto sempre false)
-            return false;
+            // Sobe na hierarquia para encontrar o EnemyController (pode estar num pai)
+            var enemy = target.GetComponentInParent<EnemyController>();
+            if (enemy == null) return false;
+
+            // Furtivo = inimigo não alertado E atacante pelas costas
+            // "Pelas costas" = dot entre direção do ataque e forward do alvo > 0
+            // (forward do inimigo = direção que ele está se movendo / encarando)
+            if (enemy.IsAlerted) return false;
+
+            // Verifica ângulo: se a direção do ataque aponta no mesmo sentido do
+            // facing do inimigo, o player está atacando pelas costas
+            Vector2 enemyFacing = new Vector2(
+                enemy.Animator.GetFloat(EnemyController.HashMoveX),
+                enemy.Animator.GetFloat(EnemyController.HashMoveY));
+
+            if (enemyFacing.sqrMagnitude < 0.01f) return true; // inimigo parado = sempre furtivo
+
+            float dot = Vector2.Dot(_attackDirection, enemyFacing);
+            return dot > 0.3f;  // limiar configurável no futuro via SO
         }
 
         /// <summary>Rotaciona um Vector2 por <paramref name="angleDeg"/> graus.</summary>
