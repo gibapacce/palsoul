@@ -6,6 +6,14 @@ Formato: `[MVP-X] Descrição curta — data`
 
 ## MVP em andamento
 
+### [MVP-6] Sistema de Transformação (Forma Ativa) — 12/09/2026
+- `TransformationSystem`: `SetActiveForm()` troca AnimatorController, AttackDataSO leve/pesado, HP máximo e escala do sprite; salva estado humano para restauração.
+- `SquadMemberAI`: IA autônoma da criatura do squad — segue player em distância configurável, ataca inimigos próximos com `lightAttack`, para ao `IsPlayerControlled=true`.
+- `SquadController`: gerencia 2 slots, `OnSwap` callback (Tab/LB), `SetSquad`/`SetActiveFormOnly`/`SetPassiveSlot` API, instancia `SquadMemberAI` prefab em runtime com cooldown de troca.
+- `PlayerController`: `SetAttackData()` troca AttackDataSOs e reconstrói estados de ataque; `SetMoveSpeedOverride()` permite que a Forma Ativa tenha velocidade diferente do SO; `LightAttackData`/`HeavyAttackData` expostos como propriedades públicas.
+
+---
+
 ### [MVP-5] Sistema de captura funcional com fórmula completa — 12/09/2026
 - `WorkAffinity`: enum flags com 8 aptidões de trabalho de base.
 - `CreatureDefinitionSO`: define espécie (stats, elemento, moveset, WorkAffinity, loot, animatorController, captureHPThreshold).

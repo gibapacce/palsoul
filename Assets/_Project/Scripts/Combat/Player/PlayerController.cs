@@ -54,6 +54,10 @@ namespace Palsoul.Combat
         public HealthSystem   HealthSystem   => _healthSystem;
         public StaminaSystem  StaminaSystem  => _staminaSystem;
 
+        // Expostos para o TransformationSystem ler/escrever os AttackData da Forma Ativa
+        public AttackDataSO LightAttackData => lightAttackData;
+        public AttackDataSO HeavyAttackData => heavyAttackData;
+
         // ── State Machine ──────────────────────────────────────────────────────
         private IState      _currentState;
         private PlayerState _currentStateEnum;
@@ -80,7 +84,8 @@ namespace Palsoul.Combat
         private static readonly int HashMoveX    = Animator.StringToHash("MoveX");
         private static readonly int HashMoveY    = Animator.StringToHash("MoveY");
 
-        // ── Flags de input buffering ───────────────────────────────────────────
+        // ── Override de velocidade (Forma Ativa pode ter velocidade diferente) ───
+        private float _moveSpeedOverride = -1f;  // -1 = usa PlayerMovementSO
         // Permite que input pressionado durante animação seja processado no próximo frame válido
         private bool _lightAttackBuffered;
         private bool _heavyAttackBuffered;
@@ -303,8 +308,9 @@ namespace Palsoul.Combat
         private void ApplyMovement()
         {
             if (movementData == null) return;
+            float speed = _moveSpeedOverride > 0f ? _moveSpeedOverride : movementData.moveSpeed;
             if (MoveInput.sqrMagnitude > 0.01f)
-                _rb.linearVelocity = MoveInput.normalized * movementData.moveSpeed;
+                _rb.linearVelocity = MoveInput.normalized * speed;
             else
                 _rb.linearVelocity *= movementData.deceleration;
         }
@@ -363,6 +369,39 @@ namespace Palsoul.Combat
         #endregion
 
         // ─────────────────────────────────────────────────────────────────────
+        #region API de Transformação (chamada pelo TransformationSystem)
+
+        /// <summary>
+        /// Troca os AttackDataSO usados nos estados de ataque leve e pesado.
+        /// Chamado pelo TransformationSystem ao mudar a Forma Ativa.
+        /// Reconstrói os estados de ataque com os novos dados.
+        /// </summary>
+        public void SetAttackData(AttackDataSO light, AttackDataSO heavy)
+        {
+            lightAttackData = light;
+            heavyAttackData = heavy;
+
+            // Reconstrói os estados de ataque com os novos SOs
+            _attackLightState = new PlayerAttackState(this, _hitbox, lightAttackData, PlayerState.AttackLight);
+            _attackHeavyState = new PlayerAttackState(this, _hitbox, heavyAttackData, PlayerState.AttackHeavy);
+
+            // Se estava atacando, volta ao Idle para evitar estado inválido
+            if (_currentStateEnum == PlayerState.AttackLight
+             || _currentStateEnum == PlayerState.AttackHeavy)
+            {
+                _hitbox.Deactivate();
+                TransitionTo(PlayerState.Idle);
+            }
+        }
+
+        /// <summary>
+        /// Define um override de velocidade de movimento para a Forma Ativa.
+        /// Passa -1 para voltar a usar o PlayerMovementSO.
+        /// </summary>
+        public void SetMoveSpeedOverride(float speed) => _moveSpeedOverride = speed;
+
+        #endregion
+
         #region Validação e Debug
 
         private void ValidateReferences()
