@@ -9,7 +9,7 @@
 
 ## 1. PITCH (1 parágrafo)
 
-Um ARPG 2D em pixel art, visão top-down, onde o jogador explora um mundo aberto hostil capturando e domesticando criaturas ("Companions") para lutar, trabalhar e sobreviver — como em Palworld — mas todo o combate direto do jogador (e das lutas de chefe) segue a gramática soulslike de Elden Ring: stamina finita, rolls com i-frames, parry/guard-counter, bonfires (checkpoints que respawnam inimigos e curam o jogador), perda de recursos ao morrer com chance de recuperação no local da morte, e chefes de arena com múltiplas fases e "runback". A fusão central é: **captura, base-building e automação (loop Palworld) + combate punitivo e progressão baseada em risco (loop Elden Ring)**.
+Um ARPG 2D em pixel art, visão top-down, onde o jogador explora um mundo aberto hostil capturando criaturas ("Companions") — e ao capturá-las, **torna-se elas**: o personagem humano desaparece e o jogador passa a controlar a criatura capturada, usando seu moveset, elemento e poderes únicos. Duas criaturas compõem o squad ativo; o jogador alterna o controle direto entre elas em tempo real, enquanto a outra luta de forma autônoma. A Forma Ativa (qual criatura o jogador "é") é escolhida no Ancoradouro. Todo o combate segue a gramática soulslike de Elden Ring: stamina finita, rolls com i-frames, parry/guard-counter, bonfires (checkpoints que respawnam inimigos e curam o jogador), perda de recursos ao morrer com chance de recuperação no local da morte, e chefes de arena com múltiplas fases e "runback". A fusão central é: **transformação em criaturas capturadas (identidade de combate fluida) + combate punitivo e progressão baseada em risco (loop Elden Ring) + base-building e automação (loop Palworld)**.
 
 ---
 
@@ -42,11 +42,12 @@ Um ARPG 2D em pixel art, visão top-down, onde o jogador explora um mundo aberto
 
 ## 3. PILARES DE DESIGN (Design Pillars)
 
-1. **Captura tem peso soulslike.** Capturar uma criatura forte é, na prática, "vencer um miniboss": exige gerenciar stamina, iniciar do jeito certo (ataque furtivo/pelas costas), e arriscar recursos (esferas caras).
-2. **A base é seu santuário (bonfire), não uma cidade segura.** A base funciona como checkpoint: cura, guarda progressão, mas também é onde a automação com criaturas acontece. Perder para um chefe te manda de volta pra base mais próxima, não para o início do jogo.
-3. **Morte tem custo, não é game over.** Perder recursos (não XP/level) no local da morte, recuperáveis, mantém o "risco" soulslike sem travar a progressão de personagem.
-4. **Criaturas são ferramentas de combate E de economia — nunca uma sem a outra.** Toda criatura útil em combate também tem pelo menos 1 aptidão de trabalho de base, e vice-versa.
-5. **Pixel art legível > pixel art bonito.** Telegraphs de ataque de chefes precisam ser lidos em poucos frames; silhueta e cor têm prioridade sobre detalhe.
+1. **Capturar é tornar-se.** Capturar uma criatura não é só "recrutá-la" — é adquirir uma nova identidade de combate. O jogador literalmente se transforma na criatura e joga com seu moveset, elemento e poderes. Cada captura expande o repertório de "quem você pode ser".
+2. **Captura tem peso soulslike.** Capturar uma criatura forte é, na prática, "vencer um miniboss": exige gerenciar stamina, iniciar do jeito certo (ataque furtivo/pelas costas), e arriscar recursos (esferas caras).
+3. **A base é seu santuário (bonfire), não uma cidade segura.** A base funciona como checkpoint: cura, guarda progressão, permite trocar a Forma Ativa, mas também é onde a automação com criaturas acontece. Perder para um chefe te manda de volta pra base mais próxima, não para o início do jogo.
+4. **Morte tem custo, não é game over.** Perder recursos (não XP/level) no local da morte, recuperáveis, mantém o "risco" soulslike sem travar a progressão de personagem.
+5. **Criaturas são identidade de combate E economia — nunca uma sem a outra.** Toda criatura útil em combate também tem pelo menos 1 aptidão de trabalho de base, e vice-versa.
+6. **Pixel art legível > pixel art bonito.** Telegraphs de ataque de chefes precisam ser lidos em poucos frames; silhueta e cor têm prioridade sobre detalhe.
 
 ---
 
@@ -86,10 +87,25 @@ Desbloquear novas regiões (gated por chefe de área, não por level check duro)
 - 6 a 8 elementos no MVP (ex.: Físico/Neutro, Fogo, Água, Terra, Sombra, Luz, Veneno) com matriz de vantagem simples (triângulo estendido), aplicável tanto a ataques de criaturas quanto (parcialmente) a armas elementais do jogador.
 - Vantagem elemental = multiplicador de dano fixo (ex.: 1.3x / 0.75x), nunca "one-shot" — mantém a tensão soulslike de que técnica > vantagem numérica pura.
 
-### 5.4 Criaturas ("Companions")
-- Cada espécie definida via `CreatureDefinitionSO` (ScriptableObject) contendo: stats base, elemento, moveset de combate (lista de `AttackDataSO`), aptidões de trabalho (enum flags: Mineração, Corte, Colheita, Fundição, Geração de Energia, Transporte), tabela de loot/drop, raridade, sprite sheet e animator controller reference.
-- Estados de uma criatura: Selvagem (mundo) → Em combate → Capturada → (Alocada: Squad ativo | Base: Ociosa | Base: Trabalhando).
-- Squad ativo do jogador: limite inicial de 2–3 criaturas acompanhando simultaneamente (expansível via progressão), lutando semi-autonomamente com IA simples orientada a comandos do jogador (Atacar / Focar alvo / Recuar).
+### 5.4 Criaturas ("Companions") e Sistema de Transformação
+
+#### Definição de espécie
+Cada espécie definida via `CreatureDefinitionSO` (ScriptableObject) contendo: stats base, elemento, moveset de combate (lista de `AttackDataSO`), aptidões de trabalho (enum flags: Mineração, Corte, Colheita, Fundição, Geração de Energia, Transporte), tabela de loot/drop, raridade, sprite sheet e animator controller reference.
+
+#### Estados de uma criatura
+Selvagem (mundo) → Em combate → Capturada → (Forma Ativa | Squad Autônomo | Base: Ociosa | Base: Trabalhando).
+
+#### Sistema de Transformação (mecânica central)
+- **Forma Ativa:** a criatura que o jogador **é** em campo. O personagem humano desaparece — o jogador controla diretamente a criatura capturada, usando seu moveset, elemento e poderes únicos.
+- **Squad ativo:** 2 criaturas no total. Uma é a Forma Ativa (controle direto do jogador); a outra luta de forma **autônoma** com IA simples ao lado do jogador.
+- **Troca de controle em campo:** o jogador pode alternar o controle direto entre as duas criaturas do squad com um botão dedicado (ex.: `Tab` / `LB`). Ao trocar, a criatura que perde o controle passa a operar de forma autônoma; a que recebe o controle passa a ser controlada pelo jogador. Não há custo de stamina na troca — o custo é de decisão tática.
+- **Troca de Forma Ativa:** qual criatura ocupa o slot principal do squad só pode ser alterada no **Ancoradouro**, escolhendo entre todas as criaturas capturadas. Isso mantém o peso da decisão de "qual identidade de combate levar" para cada área.
+- **Personagem humano:** existe como entidade de progressão (atributos, Éter, equipamento), mas não tem presença visual em combate enquanto há uma Forma Ativa viva no squad. Reaparece apenas na tela de morte / tela do Ancoradouro.
+
+#### Moveset por criatura
+- Cada `CreatureDefinitionSO` define os ataques disponíveis quando o jogador está no controle daquela forma.
+- Ataque leve, ataque pesado e habilidade especial (cooldown) são os slots padrão — configuráveis por criatura via `AttackDataSO`.
+- O dodge roll e o sistema de stamina são universais (não mudam por criatura) — cada forma usa os mesmos controles base com movesets diferentes.
 
 ### 5.5 Base building & automação
 - Grid de construção livre (não estritamente tile-locked) ao redor de uma estrutura central ("Ancoradouro", equivalente ao Palbox).
@@ -228,11 +244,12 @@ Assets/
 3. Sistema de ataque leve/pesado do player + hitbox/hurtbox.
 4. 1 inimigo básico com State Machine (Idle/Patrol/Chase/Attack/Stagger/Death).
 5. Sistema de captura funcional com 1 criatura de teste (fórmula completa da seção 5.2).
-6. 1 Ancoradouro funcional: cura, reset de mundo, gasto de Éter em 1 atributo.
-7. Sistema de morte + Éter + Eco (marcador recuperável).
-8. 1 chefe de arena com 2 fases e runback curto.
-9. Base mínima: 1 tipo de edifício de produção + alocação de 1 criatura + 1 recurso sendo gerado.
-10. Save/Load em JSON cobrindo todo o exposto acima.
+6. **Sistema de Transformação:** ao capturar uma criatura, o jogador pode ativá-la como Forma Ativa no Ancoradouro — o sprite/animator/moveset do jogador são substituídos pelos da criatura. Troca de controle entre Forma Ativa e criatura autônoma do squad via botão dedicado em campo.
+7. 1 Ancoradouro funcional: cura, reset de mundo, gasto de Éter em 1 atributo, troca de Forma Ativa.
+8. Sistema de morte + Éter + Eco (marcador recuperável).
+9. 1 chefe de arena com 2 fases e runback curto.
+10. Base mínima: 1 tipo de edifício de produção + alocação de 1 criatura + 1 recurso sendo gerado.
+11. Save/Load em JSON cobrindo todo o exposto acima.
 
 ### 12.2 Fora do MVP (backlog pós-MVP)
 - Multiplayer cooperativo.
@@ -251,16 +268,19 @@ Assets/
 - **Morte/Éter:** valor perdido é exatamente o Éter carregado no momento da morte; Eco desaparece permanentemente se o jogador morrer antes de alcançá-lo.
 - **Chefe:** transição de fase é determinística por %HP (não por tempo), todo ataque tem telegraph mínimo de X frames antes do hitbox ativar.
 - **Base/Produção:** criatura alocada só aceita tarefas compatíveis com suas `WorkAffinity` flags; produção gera recurso a uma taxa configurável por ScriptableObject.
-- **Save/Load:** fechar e reabrir o jogo restaura posição, atributos, squad, bestiário e estado da base sem perda de dados.
+- **Transformação / Forma Ativa:** ao ativar uma criatura como Forma Ativa no Ancoradouro, o sprite e moveset do jogador são substituídos pelos da criatura; troca de controle entre as duas criaturas do squad funciona em campo sem custo; a criatura que perde o controle opera com IA autônoma.
+- **Save/Load:** fechar e reabrir o jogo restaura posição, atributos, squad (incluindo Forma Ativa), bestiário e estado da base sem perda de dados.
 
 ---
 
 ## 14. GLOSSÁRIO RÁPIDO
 
-- **Ancoradouro:** equivalente a bonfire (Souls) + Palbox (Palworld). Checkpoint e hub de base.
+- **Ancoradouro:** equivalente a bonfire (Souls) + Palbox (Palworld). Checkpoint, hub de base e local de troca de Forma Ativa.
 - **Éter:** moeda de progressão perdida/recuperável ao morrer (equivalente a Souls/Runas).
 - **Eco:** marcador do local de morte com o Éter perdido.
 - **Companion:** criatura capturável, equivalente a "Pal".
+- **Forma Ativa:** a criatura que o jogador controla diretamente em campo (o jogador "é" ela).
+- **Squad Autônomo:** a segunda criatura do squad, que luta com IA ao lado da Forma Ativa. O jogador pode assumir controle direto dela a qualquer momento, tornando-a a nova Forma Ativa temporária em campo.
 - **Work Affinity:** aptidão de trabalho de uma criatura para tarefas de base.
 
 ---
