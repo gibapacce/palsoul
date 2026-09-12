@@ -6,6 +6,19 @@ Formato: `[MVP-X] Descrição curta — data`
 
 ## MVP em andamento
 
+### [MVP-4] Inimigo básico com State Machine completa — 12/09/2026
+- `EnemyDataSO`: HP, speeds, raios de IA, AttackData, patrol, stagger, death delay, etherDrop.
+- `EnemyController`: hub da State Machine com helpers `MoveTowards`/`StopMovement`/`DistanceToPlayer`, flag `IsAlerted`, gizmos de raios, assinatura de `OnDeath` e `OnStagger`.
+- `EnemyIdleState`: detecta player no `detectionRadius`, transiciona para Patrol após delay.
+- `EnemyPatrolState`: waypoints aleatórios dentro de `patrolRadius`, `patrolWaitTime` em cada ponto.
+- `EnemyChaseState`: persegue com `chaseSpeed`, perde aggro em `loseAggroRadius`, ataca em `attackRange`.
+- `EnemyAttackState`: para movimento (telegraph), ativa `HitboxController`, seta cooldown ao sair.
+- `EnemyStaggerState`: imobiliza por `staggerDuration`, retorna para Chase ou Idle.
+- `EnemyDeathState`: desliga física e colliders, fade out, destrói GO após `deathDestroyDelay`.
+- `HitboxController`: `IsStealthHit` implementado — detecta `EnemyController.IsAlerted` e ângulo de ataque.
+
+---
+
 ### [MVP-3] Sistema de ataque leve/pesado + hitbox/hurtbox — 12/09/2026
 - `ElementSO`: ScriptableObject de elemento (placeholder para MVP 5, já referenciado pelo AttackDataSO).
 - `AttackDataSO`: define dano, custo de stamina, timing de hitbox, knockback e elemento por ataque.
