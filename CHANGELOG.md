@@ -6,6 +6,18 @@ Formato: `[MVP-X] Descrição curta — data`
 
 ## MVP em andamento
 
+### [MVP-5] Sistema de captura funcional com fórmula completa — 12/09/2026
+- `WorkAffinity`: enum flags com 8 aptidões de trabalho de base.
+- `CreatureDefinitionSO`: define espécie (stats, elemento, moveset, WorkAffinity, loot, animatorController, captureHPThreshold).
+- `CaptureSphereDataSO`: parâmetros por tier de esfera (baseChance, cor, tier).
+- `CaptureFormula`: classe estática pura com `Calculate()`, `HPModifier()`, `StatusModifier()` e `RunTests()` via menu Unity (Palsoul > Run Capture Formula Tests).
+- `CaptureStatus`: enum flags de status (Stunned, Burning, Poisoned, Frozen).
+- `BestiaryData`: ScriptableObject com `RegisterCapture`, `HasCaptured`, `GetCaptureCount` e eventos `OnNewSpeciesCaptured`/`OnCaptureCounted`.
+- `CreatureController`: HP%, IsAlerted proxy, status effects, fúria pós-falha (buff de dano + flash vermelho), evento `OnCaptured`.
+- `CaptureSystem`: arremesso via coroutine, detecção de alvo por `OverlapCircleAll`, fórmula completa, log detalhado de cada tentativa, `OnCaptureSuccess`/`OnCaptureFailure` eventos.
+
+---
+
 ### [MVP-4] Inimigo básico com State Machine completa — 12/09/2026
 - `EnemyDataSO`: HP, speeds, raios de IA, AttackData, patrol, stagger, death delay, etherDrop.
 - `EnemyController`: hub da State Machine com helpers `MoveTowards`/`StopMovement`/`DistanceToPlayer`, flag `IsAlerted`, gizmos de raios, assinatura de `OnDeath` e `OnStagger`.
