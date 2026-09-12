@@ -6,37 +6,53 @@ namespace Palsoul.Combat
 {
     /// <summary>
     /// Controlador principal do player.
-    /// Gerencia a State Machine (Idle / Moving / Dodging) e lê input via Unity Input System.
-    /// Todos os parâmetros de movimento e stamina vêm de ScriptableObjects — sem magic numbers aqui.
+    /// Gerencia a State Machine (Idle / Moving / Dodging / AttackLight / AttackHeavy)
+    /// e lê input via Unity Input System (Send Messages).
+    ///
+    /// Implementa IInvincible para que o HurtboxController possa checar i-frames sem
+    /// criar dependência circular.
     ///
     /// Requisitos de componentes no prefab:
-    ///   - Rigidbody2D   (Body Type: Dynamic, Gravity Scale: 0, Collision Detection: Continuous, Freeze Rotation Z)
-    ///   - Collider2D    (ex.: CapsuleCollider2D)
-    ///   - Animator      (parâmetros: "IsMoving" bool, "IsDodging" bool, "MoveX" float, "MoveY" float)
+    ///   - Rigidbody2D   (Dynamic, Gravity Scale 0, Continuous, Freeze Rotation Z)
+    ///   - Collider2D    (ex.: CapsuleCollider2D) na layer "Player"
+    ///   - Animator      (parâmetros: IsMoving bool, IsDodging bool, MoveX/MoveY float,
+    ///                    AttackLight trigger, AttackHeavy trigger, AttackSpeed float)
     ///   - PlayerInput   (Action Asset: InputActions, Behavior: Send Messages)
     ///   - StaminaSystem (mesmo GameObject)
+    ///   - HealthSystem  (mesmo GameObject, tag "Player")
+    ///   - HitboxController (mesmo GameObject)
     /// </summary>
     [RequireComponent(typeof(Rigidbody2D))]
     [RequireComponent(typeof(Animator))]
     [RequireComponent(typeof(StaminaSystem))]
-    public class PlayerController : MonoBehaviour
+    [RequireComponent(typeof(HealthSystem))]
+    [RequireComponent(typeof(HitboxController))]
+    public class PlayerController : MonoBehaviour, IInvincible
     {
-        // ── Dados de design (nunca hardcoded) ─────────────────────────────────
+        // ── Dados de design ────────────────────────────────────────────────────
         [Header("Dados de Movimento")]
-        [Tooltip("ScriptableObject com moveSpeed e deceleration.")]
         [SerializeField] private PlayerMovementSO movementData;
 
         [Header("Dados de Stamina / Dodge")]
-        [Tooltip("ScriptableObject com stamina, dodge e i-frames.")]
         [SerializeField] private StaminaSO staminaData;
 
-        // ── Referências de componentes ─────────────────────────────────────────
-        private Rigidbody2D   _rb;
-        private Animator      _animator;
-        private StaminaSystem _staminaSystem;
+        [Header("Ataques")]
+        [Tooltip("AttackDataSO do ataque leve (rápido, baixo dano).")]
+        [SerializeField] private AttackDataSO lightAttackData;
 
-        /// <summary>Referência pública ao Animator para os estados lerem (sem GetComponent).</summary>
-        public Animator Animator => _animator;
+        [Tooltip("AttackDataSO do ataque pesado (lento, alto dano).")]
+        [SerializeField] private AttackDataSO heavyAttackData;
+
+        // ── Referências de componentes ─────────────────────────────────────────
+        private Rigidbody2D    _rb;
+        private Animator       _animator;
+        private StaminaSystem  _staminaSystem;
+        private HealthSystem   _healthSystem;
+        private HitboxController _hitbox;
+
+        public Animator       Animator       => _animator;
+        public HealthSystem   HealthSystem   => _healthSystem;
+        public StaminaSystem  StaminaSystem  => _staminaSystem;
 
         // ── State Machine ──────────────────────────────────────────────────────
         private IState      _currentState;
@@ -45,25 +61,29 @@ namespace Palsoul.Combat
         private PlayerIdleState   _idleState;
         private PlayerMovingState _movingState;
         private PlayerDodgeState  _dodgeState;
+        private PlayerAttackState _attackLightState;
+        private PlayerAttackState _attackHeavyState;
 
         // ── Input ──────────────────────────────────────────────────────────────
-        /// <summary>Vetor de input de movimento (raw, não normalizado).</summary>
-        public Vector2 MoveInput { get; private set; }
-
-        /// <summary>Última direção válida de movimento (para idle direcional e dodge sem input).</summary>
+        public Vector2 MoveInput         { get; private set; }
         public Vector2 LastMoveDirection { get; private set; } = Vector2.down;
 
-        // ── I-Frames ───────────────────────────────────────────────────────────
+        // ── IInvincible ────────────────────────────────────────────────────────
         /// <summary>
-        /// Flag de invencibilidade. Setada pelo PlayerDodgeState durante a janela de i-frames.
-        /// Consultada pelo HitboxSystem (MVP 3) para ignorar dano.
+        /// Flag de invencibilidade — true durante a janela de i-frames do dodge.
+        /// Consultada pelo HurtboxController via interface IInvincible.
         /// </summary>
         public bool IsInvincible { get; set; }
 
         // ── Animator hashes ────────────────────────────────────────────────────
-        private static readonly int HashIsMoving  = Animator.StringToHash("IsMoving");
-        private static readonly int HashMoveX     = Animator.StringToHash("MoveX");
-        private static readonly int HashMoveY     = Animator.StringToHash("MoveY");
+        private static readonly int HashIsMoving = Animator.StringToHash("IsMoving");
+        private static readonly int HashMoveX    = Animator.StringToHash("MoveX");
+        private static readonly int HashMoveY    = Animator.StringToHash("MoveY");
+
+        // ── Flags de input buffering ───────────────────────────────────────────
+        // Permite que input pressionado durante animação seja processado no próximo frame válido
+        private bool _lightAttackBuffered;
+        private bool _heavyAttackBuffered;
 
         // ─────────────────────────────────────────────────────────────────────
         #region Unity Lifecycle
@@ -73,41 +93,58 @@ namespace Palsoul.Combat
             _rb            = GetComponent<Rigidbody2D>();
             _animator      = GetComponent<Animator>();
             _staminaSystem = GetComponent<StaminaSystem>();
+            _healthSystem  = GetComponent<HealthSystem>();
+            _hitbox        = GetComponent<HitboxController>();
 
-            if (movementData == null)
-                Debug.LogError("[PlayerController] PlayerMovementSO não atribuído!", this);
+            ValidateReferences();
 
-            if (staminaData == null)
-                Debug.LogError("[PlayerController] StaminaSO não atribuído!", this);
-
-            // Instancia estados — passam referências necessárias no construtor
-            _idleState   = new PlayerIdleState(this);
-            _movingState = new PlayerMovingState(this);
-            _dodgeState  = new PlayerDodgeState(this, staminaData, _rb);
+            // Instancia estados
+            _idleState        = new PlayerIdleState(this);
+            _movingState      = new PlayerMovingState(this);
+            _dodgeState       = new PlayerDodgeState(this, staminaData, _rb);
+            _attackLightState = new PlayerAttackState(this, _hitbox, lightAttackData,  PlayerState.AttackLight);
+            _attackHeavyState = new PlayerAttackState(this, _hitbox, heavyAttackData,  PlayerState.AttackHeavy);
         }
 
         private void Start()
         {
             TransitionTo(PlayerState.Idle);
+
+            // Assina morte para bloquear input
+            if (_healthSystem != null)
+                _healthSystem.OnDeath += OnPlayerDeath;
+        }
+
+        private void OnDestroy()
+        {
+            if (_healthSystem != null)
+                _healthSystem.OnDeath -= OnPlayerDeath;
         }
 
         private void Update()
         {
             _currentState?.Tick();
 
-            // Dodge fora do estado ativo também precisa decrementar o cooldown
             if (_currentStateEnum != PlayerState.Dodging)
                 _dodgeState?.TickCooldown();
 
+            ProcessBufferedInputs();
             UpdateAnimator();
         }
 
         private void FixedUpdate()
         {
-            // Movimento físico só é aplicado fora do estado Dodging
-            // (o PlayerDodgeState controla o Rigidbody diretamente durante o roll)
-            if (_currentStateEnum != PlayerState.Dodging)
+            // Movimento físico só fora de Dodge e Ataques
+            bool isActing = _currentStateEnum == PlayerState.Dodging
+                         || _currentStateEnum == PlayerState.AttackLight
+                         || _currentStateEnum == PlayerState.AttackHeavy;
+
+            if (!isActing)
                 ApplyMovement();
+            else if (_currentStateEnum == PlayerState.AttackLight
+                  || _currentStateEnum == PlayerState.AttackHeavy)
+                // Para o player enquanto ataca (remove momentum)
+                _rb.linearVelocity = Vector2.Lerp(_rb.linearVelocity, Vector2.zero, 0.4f);
         }
 
         #endregion
@@ -115,10 +152,6 @@ namespace Palsoul.Combat
         // ─────────────────────────────────────────────────────────────────────
         #region State Machine
 
-        /// <summary>
-        /// Realiza a transição para um novo estado.
-        /// Chama Exit() no estado atual e Enter() no novo.
-        /// </summary>
         public void TransitionTo(PlayerState newState)
         {
             if (_currentStateEnum == newState && _currentState != null) return;
@@ -128,11 +161,12 @@ namespace Palsoul.Combat
 
             _currentState = newState switch
             {
-                PlayerState.Idle    => _idleState,
-                PlayerState.Moving  => _movingState,
-                PlayerState.Dodging => _dodgeState,
-                // Futuros: AttackLight, AttackHeavy, Stagger, Dead (MVPs 3–7)
-                _                   => _idleState
+                PlayerState.Idle        => _idleState,
+                PlayerState.Moving      => _movingState,
+                PlayerState.Dodging     => _dodgeState,
+                PlayerState.AttackLight => _attackLightState,
+                PlayerState.AttackHeavy => _attackHeavyState,
+                _                       => _idleState
             };
 
             _currentState.Enter();
@@ -143,40 +177,122 @@ namespace Palsoul.Combat
         #endregion
 
         // ─────────────────────────────────────────────────────────────────────
-        #region Input Callbacks (Send Messages via PlayerInput)
+        #region Input Callbacks (Send Messages)
 
         private void OnMove(InputValue value)
         {
             MoveInput = value.Get<Vector2>();
-
             if (MoveInput.sqrMagnitude > 0.01f)
                 LastMoveDirection = MoveInput.normalized;
         }
 
-        /// <summary>
-        /// Chamado pelo PlayerInput quando a action "Dodge" é pressionada.
-        /// Valida cooldown e stamina antes de transicionar.
-        /// </summary>
         private void OnDodge(InputValue value)
         {
             if (!value.isPressed) return;
-
-            // Bloqueia dodge durante o próprio estado de dodge
             if (_currentStateEnum == PlayerState.Dodging) return;
-
-            // Verifica cooldown
+            if (_healthSystem != null && _healthSystem.IsDead) return;
             if (_dodgeState != null && _dodgeState.IsOnCooldown) return;
-
-            // Verifica stamina suficiente
             if (staminaData == null || _staminaSystem == null) return;
+
             if (!_staminaSystem.TryConsume(staminaData.dodgeCost))
             {
-                // Sem stamina: feedback visual (flash vermelho no sprite)
                 TriggerNoStaminaFeedback();
                 return;
             }
 
             TransitionTo(PlayerState.Dodging);
+        }
+
+        private void OnAttackLight(InputValue value)
+        {
+            if (!value.isPressed) return;
+            if (_healthSystem != null && _healthSystem.IsDead) return;
+
+            // Se já está atacando levemente, enfileira combo
+            if (_currentStateEnum == PlayerState.AttackLight)
+            {
+                _attackLightState?.QueueCombo();
+                return;
+            }
+
+            // Bufferiza se estiver em dodge ou ataque pesado
+            if (_currentStateEnum == PlayerState.Dodging
+             || _currentStateEnum == PlayerState.AttackHeavy)
+            {
+                _lightAttackBuffered = true;
+                return;
+            }
+
+            TryExecuteAttack(PlayerState.AttackLight);
+        }
+
+        private void OnAttackHeavy(InputValue value)
+        {
+            if (!value.isPressed) return;
+            if (_healthSystem != null && _healthSystem.IsDead) return;
+
+            if (_currentStateEnum == PlayerState.Dodging
+             || _currentStateEnum == PlayerState.AttackLight
+             || _currentStateEnum == PlayerState.AttackHeavy)
+            {
+                _heavyAttackBuffered = true;
+                return;
+            }
+
+            TryExecuteAttack(PlayerState.AttackHeavy);
+        }
+
+        #endregion
+
+        // ─────────────────────────────────────────────────────────────────────
+        #region Ataque
+
+        private void TryExecuteAttack(PlayerState attackState)
+        {
+            AttackDataSO data = attackState == PlayerState.AttackLight
+                ? lightAttackData
+                : heavyAttackData;
+
+            if (data == null)
+            {
+                Debug.LogWarning($"[PlayerController] {attackState} sem AttackDataSO atribuído!", this);
+                return;
+            }
+
+            // Verifica e consome stamina
+            if (_staminaSystem != null && !_staminaSystem.TryConsume(data.staminaCost))
+            {
+                TriggerNoStaminaFeedback();
+                return;
+            }
+
+            TransitionTo(attackState);
+        }
+
+        /// <summary>
+        /// Processa inputs bufferizados ao entrar em estados "livres" (Idle/Moving).
+        /// Garante responsividade mesmo com pequena janela de input durante ações.
+        /// </summary>
+        private void ProcessBufferedInputs()
+        {
+            bool canAct = _currentStateEnum == PlayerState.Idle
+                       || _currentStateEnum == PlayerState.Moving;
+            if (!canAct) return;
+
+            // Pesado tem prioridade sobre leve (decisão de design)
+            if (_heavyAttackBuffered)
+            {
+                _heavyAttackBuffered = false;
+                _lightAttackBuffered = false;
+                TryExecuteAttack(PlayerState.AttackHeavy);
+                return;
+            }
+
+            if (_lightAttackBuffered)
+            {
+                _lightAttackBuffered = false;
+                TryExecuteAttack(PlayerState.AttackLight);
+            }
         }
 
         #endregion
@@ -187,11 +303,25 @@ namespace Palsoul.Combat
         private void ApplyMovement()
         {
             if (movementData == null) return;
-
             if (MoveInput.sqrMagnitude > 0.01f)
                 _rb.linearVelocity = MoveInput.normalized * movementData.moveSpeed;
             else
                 _rb.linearVelocity *= movementData.deceleration;
+        }
+
+        #endregion
+
+        // ─────────────────────────────────────────────────────────────────────
+        #region Morte
+
+        private void OnPlayerDeath()
+        {
+            // Cancela qualquer ação em andamento
+            _hitbox.Deactivate();
+            _rb.linearVelocity = Vector2.zero;
+            // MVP 8 adicionará a lógica completa de morte (Éter/Eco)
+            _animator.SetTrigger("Death");
+            Debug.Log("[PlayerController] Player morreu.");
         }
 
         #endregion
@@ -202,7 +332,7 @@ namespace Palsoul.Combat
         private void UpdateAnimator()
         {
             bool isMoving = MoveInput.sqrMagnitude > 0.01f
-                         && _currentStateEnum != PlayerState.Dodging;
+                         && _currentStateEnum == PlayerState.Moving;
 
             _animator.SetBool(HashIsMoving, isMoving);
             _animator.SetFloat(HashMoveX, LastMoveDirection.x);
@@ -214,15 +344,10 @@ namespace Palsoul.Combat
         // ─────────────────────────────────────────────────────────────────────
         #region Feedback Visual
 
-        /// <summary>
-        /// Flash vermelho no SpriteRenderer quando tenta dodge sem stamina.
-        /// Sem áudio — desacoplado via evento futuro no EventBus (MVP 3+).
-        /// </summary>
         private void TriggerNoStaminaFeedback()
         {
             var sr = GetComponent<SpriteRenderer>();
             if (sr == null) return;
-            // Inicia coroutine de flash se não houver uma rodando
             StopCoroutine(nameof(NoStaminaFlash));
             StartCoroutine(nameof(NoStaminaFlash), sr);
         }
@@ -238,17 +363,24 @@ namespace Palsoul.Combat
         #endregion
 
         // ─────────────────────────────────────────────────────────────────────
-        #region Gizmos de Debug
+        #region Validação e Debug
+
+        private void ValidateReferences()
+        {
+            if (movementData   == null) Debug.LogError("[PlayerController] PlayerMovementSO não atribuído!", this);
+            if (staminaData    == null) Debug.LogError("[PlayerController] StaminaSO não atribuído!", this);
+            if (lightAttackData == null) Debug.LogWarning("[PlayerController] LightAttackData não atribuído!", this);
+            if (heavyAttackData == null) Debug.LogWarning("[PlayerController] HeavyAttackData não atribuído!", this);
+        }
 
         private void OnDrawGizmosSelected()
         {
             Gizmos.color = IsInvincible ? Color.yellow : Color.cyan;
             Gizmos.DrawRay(transform.position, (Vector3)LastMoveDirection * 0.6f);
 
-            // Label de estado atual na Scene view
 #if UNITY_EDITOR
             UnityEditor.Handles.Label(
-                transform.position + Vector3.up * 0.8f,
+                transform.position + Vector3.up * 0.9f,
                 $"{_currentStateEnum}{(IsInvincible ? " [I]" : "")}");
 #endif
         }
@@ -257,22 +389,19 @@ namespace Palsoul.Combat
     }
 
     // =========================================================================
-    // Estados Idle e Moving — simples, mantidos no mesmo arquivo
+    // Estados Idle e Moving
     // =========================================================================
 
     internal class PlayerIdleState : IState
     {
         private readonly PlayerController _player;
         public PlayerIdleState(PlayerController player) => _player = player;
-
         public void Enter() { }
-
         public void Tick()
         {
             if (_player.MoveInput.sqrMagnitude > 0.01f)
                 _player.TransitionTo(PlayerState.Moving);
         }
-
         public void Exit() { }
     }
 
@@ -280,15 +409,12 @@ namespace Palsoul.Combat
     {
         private readonly PlayerController _player;
         public PlayerMovingState(PlayerController player) => _player = player;
-
         public void Enter() { }
-
         public void Tick()
         {
             if (_player.MoveInput.sqrMagnitude <= 0.01f)
                 _player.TransitionTo(PlayerState.Idle);
         }
-
         public void Exit() { }
     }
 }
