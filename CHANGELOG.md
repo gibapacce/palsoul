@@ -6,6 +6,16 @@ Formato: `[MVP-X] Descrição curta — data`
 
 ## MVP em andamento
 
+### [MVP-7] Ancoradouro funcional — 12/09/2026
+- `EtherWallet`: `Add`, `TrySpend`, `HasEnough`, `TakeDeath` (retorna Éter perdido), `RestoreFromEco`; eventos `OnEtherChanged/OnEtherGained/OnEtherSpent`.
+- `AttributeUpgradeSO`: define 1 atributo upgradeável com `AnimationCurve` de custo por nível e `AttributeType` enum.
+- `AnchorpointDataSO`: nome, `regionID`, lista de upgrades disponíveis, raio de interação.
+- `WorldResetSystem`: `SpawnEntry` list (prefab + posição), `SpawnAll` no Start, `ResetWorld` destrói e reinstancia todos os inimigos não-chefe, gizmos de spawn.
+- `AnchorpointController`: `Rest` (cura HP+Stamina+reset mundo), `UpgradeAttribute` (consome Éter+aplica efeito), `SwapActiveForm` (chama SquadController), detecção por trigger, eventos `OnPlayerRested/OnAttributeUpgraded/OnDiscovered`.
+- `AnchorpointMenuUI`: menu OnGUI arrastável com Descansar, lista de upgrades com custo/nível/cor de affordance, trocar Forma Ativa, fechar com ESC, prompt de interação.
+
+---
+
 ### [MVP-6] Sistema de Transformação (Forma Ativa) — 12/09/2026
 - `TransformationSystem`: `SetActiveForm()` troca AnimatorController, AttackDataSO leve/pesado, HP máximo e escala do sprite; salva estado humano para restauração.
 - `SquadMemberAI`: IA autônoma da criatura do squad — segue player em distância configurável, ataca inimigos próximos com `lightAttack`, para ao `IsPlayerControlled=true`.
