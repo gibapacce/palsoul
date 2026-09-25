@@ -6,10 +6,24 @@ chefes em fases).
 A especificação completa está no arquivo GDD_Spec_Projeto_Palsoul.md, que já te enviei/está
 anexado neste projeto. Leia esse documento inteiro antes de fazer qualquer coisa.
 
+REQUISITOS DE CONTEÚDO DO JOGO COMPLETO (25/09/2026):
+- 151 entradas no bestiário, incluindo formas iniciais e evoluídas.
+- Duas ou três evoluções por linhagem, além da forma inicial, liberando novos poderes.
+  Os níveis variam por criatura; 23, 40 e 56 são exemplos.
+- Pelo menos 30 criaturas terão duas alternativas na terceira evolução, escolhidas pelo
+  jogador, podendo trocar elementos ou adicionar um segundo elemento. Ambas as opções
+  contam nas 151 entradas; nenhuma forma pode ultrapassar dois elementos distintos.
+- Dez elementos: Água, Fogo, Eletricidade, Terra, Fantasma, Escuridão, Luz, Grama, Gelo e Dragão.
+  Cada criatura tem um ou dois elementos distintos, que diferenciam ataques, defesas e magias.
+- Fechar a distribuição das 151 entradas: 30 linhagens independentes com bifurcação já
+  somam 150. Não inventar exceções, formas compartilhadas, matriz de vantagens ou regra
+  de defesa dupla. Consultar seções 5.3, 5.4, 9.5 e 12.3 do GDD.
+- Esses requisitos são documentais; a consolidação dos MVPs 1–7 passou na validação automatizada e aguarda aceite visual.
+
 REGRAS DE TRABALHO (obrigatórias):
 
 1. NUNCA implemente mais de um item da lista de MVP (seção 12.1 do doc) por vez.
-2. Siga a ordem exata da seção 12.1, do item 1 ao item 10. Não pule itens nem antecipe
+2. Siga a ordem exata da seção 12.1, do item 1 ao item 11. Não pule itens nem antecipe
    funcionalidades de itens futuros.
 3. Antes de codificar um item, me diga em 2-3 frases o que você vai implementar e quais
    arquivos/scripts vai criar ou alterar, seguindo a arquitetura da seção 9 (pastas,
@@ -27,5 +41,8 @@ REGRAS DE TRABALHO (obrigatórias):
 8. Mantenha um changelog simples (CHANGELOG.md na raiz do projeto) e adicione uma linha
    curta a cada item concluído.
 
-Comece agora pelo item 1 da lista de MVP (seção 12.1): movimento do player top-down + câmera
-pixel-perfect. Me diga o plano antes de codificar.
+Antes de iniciar uma nova etapa, leia README.md, CHANGELOG.md, SETUP_MVP1.md e git-workflow.md para
+identificar o estado atual. Não reinicie pelo item 1 automaticamente. O trabalho atual
+consolida os itens 1–7. A cena _Boot e os assets foram gerados; a suíte Unity passou.
+Consultar SETUP_MVP1.md para cobertura e pendências de validação manual. O próximo item
+funcional após o aceite será o MVP 8; não avançar sem autorização do usuário.

@@ -49,6 +49,9 @@ namespace Palsoul.Combat
         private StaminaSystem  _staminaSystem;
         private HealthSystem   _healthSystem;
         private HitboxController _hitbox;
+        private HurtboxController _hurtbox;
+        private PlayerStaggerState _staggerState;
+        [SerializeField, Min(0)] private float staggerDuration = .25f;
 
         public Animator       Animator       => _animator;
         public HealthSystem   HealthSystem   => _healthSystem;
@@ -78,6 +81,18 @@ namespace Palsoul.Combat
         /// Consultada pelo HurtboxController via interface IInvincible.
         /// </summary>
         public bool IsInvincible { get; set; }
+        public bool InputBlocked { get; private set; }
+        public bool CanAct => !InputBlocked && _healthSystem != null && !_healthSystem.IsDead
+            && (_currentStateEnum == PlayerState.Idle || _currentStateEnum == PlayerState.Moving);
+        public void SetInputBlocked(bool blocked)
+        {
+            InputBlocked = blocked;
+            if (!blocked) return;
+            MoveInput = Vector2.zero;
+            _lightAttackBuffered = _heavyAttackBuffered = false;
+            TransitionTo(PlayerState.Idle);
+            _rb.linearVelocity = Vector2.zero;
+        }
 
         // ── Animator hashes ────────────────────────────────────────────────────
         private static readonly int HashIsMoving = Animator.StringToHash("IsMoving");
@@ -100,6 +115,8 @@ namespace Palsoul.Combat
             _staminaSystem = GetComponent<StaminaSystem>();
             _healthSystem  = GetComponent<HealthSystem>();
             _hitbox        = GetComponent<HitboxController>();
+            _hurtbox = GetComponentInChildren<HurtboxController>();
+            _staggerState = new PlayerStaggerState(this, staggerDuration);
 
             ValidateReferences();
 
@@ -118,16 +135,19 @@ namespace Palsoul.Combat
             // Assina morte para bloquear input
             if (_healthSystem != null)
                 _healthSystem.OnDeath += OnPlayerDeath;
+            if (_hurtbox != null) _hurtbox.OnStagger += OnStagger;
         }
 
         private void OnDestroy()
         {
             if (_healthSystem != null)
                 _healthSystem.OnDeath -= OnPlayerDeath;
+            if (_hurtbox != null) _hurtbox.OnStagger -= OnStagger;
         }
 
         private void Update()
         {
+            if (InputBlocked || _healthSystem.IsDead) return;
             _currentState?.Tick();
 
             if (_currentStateEnum != PlayerState.Dodging)
@@ -139,6 +159,8 @@ namespace Palsoul.Combat
 
         private void FixedUpdate()
         {
+            if (InputBlocked || _healthSystem.IsDead) { _rb.linearVelocity = Vector2.zero; return; }
+            if (_currentStateEnum == PlayerState.Stagger) return;
             // Movimento físico só fora de Dodge e Ataques
             bool isActing = _currentStateEnum == PlayerState.Dodging
                          || _currentStateEnum == PlayerState.AttackLight
@@ -171,6 +193,7 @@ namespace Palsoul.Combat
                 PlayerState.Dodging     => _dodgeState,
                 PlayerState.AttackLight => _attackLightState,
                 PlayerState.AttackHeavy => _attackHeavyState,
+                PlayerState.Stagger => _staggerState,
                 _                       => _idleState
             };
 
@@ -186,6 +209,7 @@ namespace Palsoul.Combat
 
         private void OnMove(InputValue value)
         {
+            if (InputBlocked || _healthSystem.IsDead) return;
             MoveInput = value.Get<Vector2>();
             if (MoveInput.sqrMagnitude > 0.01f)
                 LastMoveDirection = MoveInput.normalized;
@@ -193,6 +217,8 @@ namespace Palsoul.Combat
 
         private void OnDodge(InputValue value)
         {
+            if (InputBlocked) return;
+            if (_currentStateEnum == PlayerState.Stagger) return;
             if (!value.isPressed) return;
             if (_currentStateEnum == PlayerState.Dodging) return;
             if (_healthSystem != null && _healthSystem.IsDead) return;
@@ -210,6 +236,7 @@ namespace Palsoul.Combat
 
         private void OnAttackLight(InputValue value)
         {
+            if (InputBlocked) return;
             if (!value.isPressed) return;
             if (_healthSystem != null && _healthSystem.IsDead) return;
 
@@ -233,6 +260,7 @@ namespace Palsoul.Combat
 
         private void OnAttackHeavy(InputValue value)
         {
+            if (InputBlocked) return;
             if (!value.isPressed) return;
             if (_healthSystem != null && _healthSystem.IsDead) return;
 
@@ -252,8 +280,9 @@ namespace Palsoul.Combat
         // ─────────────────────────────────────────────────────────────────────
         #region Ataque
 
-        private void TryExecuteAttack(PlayerState attackState)
+        public void TryExecuteAttack(PlayerState attackState)
         {
+            if (!CanAct) return;
             AttackDataSO data = attackState == PlayerState.AttackLight
                 ? lightAttackData
                 : heavyAttackData;
@@ -322,12 +351,22 @@ namespace Palsoul.Combat
 
         private void OnPlayerDeath()
         {
+            _currentState?.Exit();
+            _lightAttackBuffered = _heavyAttackBuffered = false;
+            MoveInput = Vector2.zero;
             // Cancela qualquer ação em andamento
             _hitbox.Deactivate();
             _rb.linearVelocity = Vector2.zero;
             // MVP 8 adicionará a lógica completa de morte (Éter/Eco)
             _animator.SetTrigger("Death");
             Debug.Log("[PlayerController] Player morreu.");
+        }
+
+        private void OnStagger(Vector2 direction)
+        {
+            if (_healthSystem.IsDead || InputBlocked) return;
+            _lightAttackBuffered = _heavyAttackBuffered = false;
+            TransitionTo(PlayerState.Stagger);
         }
 
         #endregion

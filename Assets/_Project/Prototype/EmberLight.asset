@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e1025044ed76a34e816b1b60cf76709, type: 3}
+  m_Name: EmberLight
+  m_EditorClassIdentifier: Palsoul.Runtime::Palsoul.Core.AttackDataSO
+  attackName: EmberLight
+  baseDamage: 15
+  stealthMultiplier: 2.5
+  staminaCost: 15
+  duration: 0.55
+  hitboxActiveStart: 0.15
+  hitboxActiveEnd: 0.3
+  recoveryTime: 0.1
+  comboWindowOffset: 0.05
+  hitboxSize: {x: 1.1, y: 1}
+  hitboxOffset: {x: 0.6, y: 0}
+  knockbackForce: 3
+  knockbackDuration: 0.15
+  element: {fileID: 0}

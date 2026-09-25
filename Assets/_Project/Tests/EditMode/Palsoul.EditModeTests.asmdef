@@ -1,0 +1,6 @@
+{
+  "name": "Palsoul.EditModeTests",
+  "references": ["Palsoul.Runtime", "Palsoul.Editor", "Unity.InputSystem"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

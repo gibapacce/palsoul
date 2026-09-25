@@ -1,0 +1,5 @@
+{
+  "name": "Palsoul.Editor",
+  "references": ["Palsoul.Runtime", "Unity.InputSystem", "Unity.RenderPipelines.Universal.Runtime", "Unity.RenderPipelines.Universal.2D.Runtime", "Unity.RenderPipelines.Core.Runtime", "UnityEditor.TestRunner", "UnityEngine.TestRunner"],
+  "includePlatforms": ["Editor"]
+}

@@ -107,6 +107,14 @@ namespace Palsoul.Core
         /// Reconfigura o HP máximo (usado ao nivelar atributo Vigor — MVP 7).
         /// Mantém a proporção de HP atual.
         /// </summary>
+        public void SetState(float maximum, float ratio)
+        {
+            maxHP = Mathf.Max(1, maximum);
+            _currentHP = maxHP * Mathf.Clamp01(ratio);
+            _isDead = canDie && _currentHP <= 0;
+            OnHPChanged?.Invoke(_currentHP, maxHP);
+        }
+
         public void SetMaxHP(float newMax, bool keepRatio = true)
         {
             float ratio = keepRatio && maxHP > 0f ? _currentHP / maxHP : 1f;

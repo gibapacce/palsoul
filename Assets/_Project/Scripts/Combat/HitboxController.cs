@@ -26,6 +26,7 @@ namespace Palsoul.Combat
 
         [Tooltip("Referência ao Transform usado como origem do hitbox (geralmente o próprio GO ou um filho 'HitboxOrigin').")]
         [SerializeField] private Transform hitboxOrigin;
+        [SerializeField, Range(-1, 1)] private float stealthFacingThreshold = .3f;
 
         // ── Estado da hitbox ativa ─────────────────────────────────────────────
         private bool          _isActive;
@@ -34,7 +35,7 @@ namespace Palsoul.Combat
         private float         _activeTimer;
 
         // Garante hit único por alvo por swing
-        private readonly HashSet<Collider2D> _hitTargets = new HashSet<Collider2D>();
+        private readonly HashSet<HealthSystem> _hitTargets = new HashSet<HealthSystem>();
 
         // ── Gizmo de debug ─────────────────────────────────────────────────────
         private bool    _gizmoVisible;
@@ -52,11 +53,12 @@ namespace Palsoul.Combat
         {
             if (!_isActive || _currentAttack == null) return;
 
+            float previousTimer = _activeTimer;
             _activeTimer += Time.deltaTime;
 
             // Janela ativa: dispara OverlapBox a cada frame dentro da janela
             bool inWindow = _activeTimer >= _currentAttack.hitboxActiveStart
-                         && _activeTimer <  _currentAttack.hitboxActiveEnd;
+                         && previousTimer < _currentAttack.hitboxActiveEnd;
 
             if (inWindow)
                 DetectHits();
@@ -118,16 +120,17 @@ namespace Palsoul.Combat
             {
                 // Ignora self e alvos já atingidos neste swing
                 if (hit.transform.IsChildOf(transform) || hit.transform == transform) continue;
-                if (_hitTargets.Contains(hit)) continue;
-
-                _hitTargets.Add(hit);
+                var targetHealth = hit.GetComponentInParent<HealthSystem>();
+                if (targetHealth == null || !_hitTargets.Add(targetHealth)) continue;
 
                 // Repassa para o HurtboxController do alvo
-                var hurtbox = hit.GetComponent<HurtboxController>();
+                var hurtbox = hit.GetComponentInParent<HurtboxController>();
                 if (hurtbox != null)
                 {
                     bool isStealth = IsStealthHit(hit.transform);
-                    hurtbox.ReceiveHit(_currentAttack, _attackDirection, isStealth);
+                    var creature = GetComponent<Palsoul.Creatures.CreatureController>();
+                    hurtbox.ReceiveHit(_currentAttack, _attackDirection, isStealth,
+                        creature != null ? creature.EnrageDamageMultiplier : 1f);
                 }
             }
         }
@@ -154,10 +157,10 @@ namespace Palsoul.Combat
                 enemy.Animator.GetFloat(EnemyController.HashMoveX),
                 enemy.Animator.GetFloat(EnemyController.HashMoveY));
 
-            if (enemyFacing.sqrMagnitude < 0.01f) return true; // inimigo parado = sempre furtivo
+            if (enemyFacing.sqrMagnitude < 0.01f) return false;
 
             float dot = Vector2.Dot(_attackDirection, enemyFacing);
-            return dot > 0.3f;  // limiar configurável no futuro via SO
+            return dot > stealthFacingThreshold;
         }
 
         /// <summary>Rotaciona um Vector2 por <paramref name="angleDeg"/> graus.</summary>

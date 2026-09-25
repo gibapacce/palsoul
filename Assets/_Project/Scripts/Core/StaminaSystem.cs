@@ -76,6 +76,7 @@ namespace Palsoul.Core
         /// </summary>
         public bool TryConsume(float amount)
         {
+            if (amount < 0 || !float.IsFinite(amount)) return false;
             if (staminaData == null) return false;
             if (_currentStamina < amount) return false;
 

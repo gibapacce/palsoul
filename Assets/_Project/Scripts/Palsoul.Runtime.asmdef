@@ -1,0 +1,5 @@
+{
+  "name": "Palsoul.Runtime",
+  "references": ["Unity.InputSystem"],
+  "autoReferenced": true
+}
