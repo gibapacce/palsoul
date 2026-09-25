@@ -118,6 +118,7 @@ namespace Palsoul.Combat
             if (_hurtbox  != null) _hurtbox.OnStagger += OnStagger;
 
             TransitionTo(EnemyState.Idle);
+            _animator.SetFloat(HashMoveY, -1f);
         }
 
         private void OnDestroy()

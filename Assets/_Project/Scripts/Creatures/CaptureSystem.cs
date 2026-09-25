@@ -51,9 +51,39 @@ namespace Palsoul.Creatures
         [Tooltip("Duração da animação de arremesso em segundos (tempo até a esfera 'chegar').")]
         [Min(0.05f)]
         [SerializeField] private float throwDuration = 0.3f;
+        [SerializeField] private SpriteRenderer projectileView;
+        [SerializeField, Range(-1, 1)] private float stealthFacingThreshold = .3f;
 
         // ── Estado ─────────────────────────────────────────────────────────────
         private bool _isThrowing;
+        private readonly System.Collections.Generic.List<CapturedCreature> captured = new();
+        public System.Collections.Generic.IReadOnlyList<CapturedCreature> Captured => captured;
+        public bool Owns(CapturedCreature creature) => captured.Contains(creature);
+        public BestiaryData Bestiary => bestiary;
+        private int initialSphereCount;
+        private void Awake()
+        {
+            initialSphereCount = sphereCount;
+            bestiary = bestiary != null ? Instantiate(bestiary) : ScriptableObject.CreateInstance<BestiaryData>();
+            bestiary.Clear();
+        }
+        private void OnDestroy() { if (bestiary != null) Destroy(bestiary); }
+        private void OnDisable()
+        {
+            StopAllCoroutines();
+            _isThrowing = false;
+            if (projectileView != null) projectileView.gameObject.SetActive(false);
+        }
+        public void RefillSpheres() => sphereCount = initialSphereCount;
+        public CapturedCreature RegisterCapture(CreatureDefinitionSO definition, float healthRatio)
+        {
+            if (definition == null) throw new System.ArgumentNullException(nameof(definition));
+            var individual = new CapturedCreature(definition, healthRatio);
+            captured.Add(individual);
+            bestiary.RegisterCapture(definition);
+            OnCaptureSuccess?.Invoke(definition);
+            return individual;
+        }
 
         // ── Eventos ────────────────────────────────────────────────────────────
         /// <summary>Disparado ao tentar capturar sem esferas.</summary>
@@ -77,13 +107,19 @@ namespace Palsoul.Creatures
         /// </summary>
         private void OnCapture(InputValue value)
         {
-            if (!value.isPressed || _isThrowing) return;
+            if (value.isPressed) TryCaptureNearest();
+        }
+
+        public bool TryCaptureNearest()
+        {
+            if (_isThrowing || activeSphere == null || activeSphere.balance == null) return false;
+            if (!GetComponent<Combat.PlayerController>().CanAct) return false;
 
             if (!HasSpheres)
             {
                 OnNoSpheresLeft?.Invoke();
                 Debug.Log("[CaptureSystem] Sem esferas de captura!");
-                return;
+                return false;
             }
 
             // Busca a criatura capturável mais próxima no raio
@@ -91,10 +127,11 @@ namespace Palsoul.Creatures
             if (target == null)
             {
                 Debug.Log("[CaptureSystem] Nenhuma criatura capturável no raio.");
-                return;
+                return false;
             }
 
             StartCoroutine(ThrowSphere(target));
+            return true;
         }
 
         #endregion
@@ -114,10 +151,25 @@ namespace Palsoul.Creatures
                            activeSphere != null ? activeSphere.sphereColor : Color.white,
                            throwDuration);
 #endif
-            yield return new WaitForSeconds(throwDuration);
+            Vector3 origin = transform.position;
+            if (projectileView != null)
+            {
+                projectileView.sprite = activeSphere.icon;
+                projectileView.color = activeSphere.sphereColor;
+                projectileView.gameObject.SetActive(true);
+            }
+            float elapsed = 0;
+            while (elapsed < throwDuration && target != null && target.IsCapturable)
+            {
+                elapsed += Time.deltaTime;
+                if (projectileView != null)
+                    projectileView.transform.position = Vector3.Lerp(origin, target.transform.position, elapsed / throwDuration);
+                yield return null;
+            }
+            if (projectileView != null) projectileView.gameObject.SetActive(false);
 
             // ── Verifica se o alvo ainda é válido (pode ter morrido durante o voo) ──
-            if (target == null || !target.IsCapturable)
+            if (target == null || !target.IsCapturable || GetComponent<HealthSystem>().IsDead)
             {
                 Debug.Log("[CaptureSystem] Alvo não é mais capturável (morreu durante o arremesso).");
                 _isThrowing = false;
@@ -128,8 +180,9 @@ namespace Palsoul.Creatures
             float chance = CaptureFormula.Calculate(
                 activeSphere,
                 target.HPNormalized,
-                !target.IsAlerted,            // furtivo = inimigo não alertado
-                target.ActiveStatus
+                IsStealthTarget(target),
+                target.ActiveStatus,
+                target.Definition
             );
 
             float roll = Random.value;        // [0, 1)
@@ -147,8 +200,7 @@ namespace Palsoul.Creatures
             if (success)
             {
                 target.ApplyCapture();
-                bestiary?.RegisterCapture(target.Definition);
-                OnCaptureSuccess?.Invoke(target.Definition);
+                RegisterCapture(target.Definition, target.HPNormalized);
             }
             else
             {
@@ -190,6 +242,15 @@ namespace Palsoul.Creatures
             }
 
             return best;
+        }
+
+        private bool IsStealthTarget(CreatureController target)
+        {
+            if (target.IsAlerted) return false;
+            var animator = target.GetComponent<Animator>();
+            Vector2 facing = new(animator.GetFloat("MoveX"), animator.GetFloat("MoveY"));
+            Vector2 direction = target.transform.position - transform.position;
+            return facing.sqrMagnitude > .01f && Vector2.Dot(direction.normalized, facing.normalized) > stealthFacingThreshold;
         }
 
         #endregion

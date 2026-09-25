@@ -18,6 +18,7 @@ namespace Palsoul.Core
         [Tooltip("Chance base de captura (0–1). Multiplicada pelos demais modificadores.")]
         [Range(0f, 1f)]
         public float baseChance = 0.30f;
+        public CaptureBalanceSO balance;
 
         [Header("Visual")]
         [Tooltip("Cor da esfera para VFX de arremesso (placeholder até ter sprite dedicado).")]

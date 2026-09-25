@@ -1,190 +1,91 @@
-using UnityEngine;
+﻿using UnityEngine;
 using Palsoul.Core;
+using Palsoul.Combat;
 
 namespace Palsoul.Creatures
 {
-    /// <summary>
-    /// IA autônoma da criatura do squad quando não está sob controle direto do jogador.
-    /// GDD seção 5.4: "a criatura que perde o controle opera com IA autônoma."
-    ///
-    /// Comportamento:
-    ///   1. Segue o player mantendo uma distância mínima (não fica colado).
-    ///   2. Detecta inimigos próximos e os ataca com o AttackData da sua espécie.
-    ///   3. Quando recebe controle (IsPlayerControlled = true), para a IA completamente.
-    ///
-    /// Setup: este componente é adicionado ao prefab da criatura do squad (um GO separado
-    /// do player que representa a segunda criatura). O SquadController liga/desliga
-    /// via IsPlayerControlled.
-    /// </summary>
+    [RequireComponent(typeof(Rigidbody2D), typeof(HealthSystem), typeof(HitboxController))]
     public class SquadMemberAI : MonoBehaviour
     {
-        // ── Referências ────────────────────────────────────────────────────────
-        [Header("Definição da Espécie")]
-        [SerializeField] private CreatureDefinitionSO _definition;
-        public CreatureDefinitionSO Definition => _definition;
-
-        private Rigidbody2D      _rb;
-        private HealthSystem     _health;
-        private Combat.HitboxController _hitbox;
-        private Animator         _animator;
-
-        // ── Configuração ───────────────────────────────────────────────────────
-        [Header("Seguimento")]
-        [Tooltip("Distância mínima do player (não chega mais perto que isso).")]
-        [SerializeField] private float followMinDistance = 1.5f;
-
-        [Tooltip("Distância máxima antes de começar a seguir o player.")]
-        [SerializeField] private float followMaxDistance = 4f;
-
-        [Header("Combate Autônomo")]
-        [Tooltip("Raio de detecção de inimigos para ataque autônomo.")]
-        [SerializeField] private float attackDetectRadius = 3f;
-
-        [Tooltip("LayerMask dos inimigos que a IA vai atacar.")]
         [SerializeField] private LayerMask enemyLayer;
-
-        // ── Estado ─────────────────────────────────────────────────────────────
-        private bool    _isPlayerControlled;
-        private float   _attackCooldown;
-        private Transform _playerTransform;
-
-        // Animator hashes
-        private static readonly int HashIsMoving = Animator.StringToHash("IsMoving");
-        private static readonly int HashMoveX    = Animator.StringToHash("MoveX");
-        private static readonly int HashMoveY    = Animator.StringToHash("MoveY");
-
-        // ── Propriedades ───────────────────────────────────────────────────────
-        public bool IsPlayerControlled
-        {
-            get => _isPlayerControlled;
-            set
-            {
-                _isPlayerControlled = value;
-                if (value) StopAutonomousBehavior();
-            }
-        }
-
-        public bool IsAlive => _health != null && !_health.IsDead;
-
-        // ─────────────────────────────────────────────────────────────────────
-        #region Unity Lifecycle
-
+        [SerializeField, Min(0)] private float followDistance = 2f;
+        [SerializeField, Min(0)] private float attackDetectRadius = 4f;
+        [SerializeField, Min(0)] private float attackRange = 1f;
+        [SerializeField, Min(0)] private float extraCooldown = 0.3f;
+        private CapturedCreature member;
+        private Transform player;
+        private Rigidbody2D body;
+        private HealthSystem health;
+        private HitboxController hitbox;
+        private Animator animator;
+        private float timer;
+        private enum State { Follow, Chase, Attack, Dead }
+        private State state;
+        public CreatureDefinitionSO Definition => member?.definition;
+        public bool IsAlive => health != null && !health.IsDead;
+        public bool IsPlayerControlled { get; set; }
         private void Awake()
         {
-            _rb      = GetComponent<Rigidbody2D>();
-            _health  = GetComponent<HealthSystem>();
-            _hitbox  = GetComponent<Combat.HitboxController>();
-            _animator = GetComponent<Animator>();
+            body = GetComponent<Rigidbody2D>();
+            health = GetComponent<HealthSystem>();
+            hitbox = GetComponent<HitboxController>();
+            animator = GetComponent<Animator>();
         }
-
-        private void Start()
+        public void Initialize(CapturedCreature creature, Transform target, float healthBonus)
         {
-            var playerGO = GameObject.FindGameObjectWithTag("Player");
-            if (playerGO != null) _playerTransform = playerGO.transform;
+            member = creature;
+            player = target;
+            if (body == null) Awake();
+            hitbox.Deactivate();
+            timer = 0;
+            body.linearVelocity = Vector2.zero;
+            health.SetState(Definition.baseHP + healthBonus, member.healthRatio);
+            animator.runtimeAnimatorController = Definition.animatorController;
+            GetComponent<SpriteRenderer>().sprite = Definition.worldSprite;
+            transform.localScale = Vector3.one * Definition.spriteScale;
+            state = State.Follow;
         }
-
-        private void Update()
+        private void FixedUpdate()
         {
-            if (_isPlayerControlled || !IsAlive) return;
-
-            _attackCooldown -= Time.deltaTime;
-
-            // Prioridade 1: ataca inimigo próximo
-            if (TryAttackNearbyEnemy()) return;
-
-            // Prioridade 2: segue o player
-            FollowPlayer();
-        }
-
-        #endregion
-
-        // ─────────────────────────────────────────────────────────────────────
-        #region IA Autônoma
-
-        private bool TryAttackNearbyEnemy()
-        {
-            if (_attackCooldown > 0f) return false;
-            if (_definition?.lightAttack == null) return false;
-
-            Collider2D[] enemies = Physics2D.OverlapCircleAll(
-                transform.position, attackDetectRadius, enemyLayer);
-
-            if (enemies.Length == 0) return false;
-
-            // Ataca o mais próximo
-            Collider2D nearest = null;
-            float minDist = float.MaxValue;
-            foreach (var col in enemies)
+            if (member == null) return;
+            member.healthRatio = health.NormalizedHP;
+            if (!IsAlive || IsPlayerControlled || player == null || player.GetComponent<HealthSystem>().IsDead)
             {
-                float d = Vector2.Distance(transform.position, col.transform.position);
-                if (d < minDist) { minDist = d; nearest = col; }
+                state = State.Dead;
+                body.linearVelocity = Vector2.zero;
+                hitbox.Deactivate();
+                return;
             }
-
-            if (nearest == null) return false;
-
-            Vector2 dir = ((Vector2)(nearest.transform.position - transform.position)).normalized;
-            _hitbox?.Activate(_definition.lightAttack, dir);
-            _attackCooldown = _definition.lightAttack.duration
-                            + _definition.lightAttack.recoveryTime + 0.3f; // cooldown extra
-
-            // Para o movimento durante o ataque
-            _rb.linearVelocity = Vector2.zero;
-            _animator?.SetBool(HashIsMoving, false);
-
-            return true;
-        }
-
-        private void FollowPlayer()
-        {
-            if (_playerTransform == null) return;
-
-            float dist = Vector2.Distance(transform.position, _playerTransform.position);
-
-            if (dist > followMaxDistance)
+            timer = Mathf.Max(0, timer - Time.fixedDeltaTime);
+            if (state == State.Attack && timer > 0)
             {
-                // Move em direção ao player
-                Vector2 dir = ((Vector2)(_playerTransform.position - transform.position)).normalized;
-                float speed = _definition != null ? _definition.baseMoveSpeed : 3f;
-                _rb.linearVelocity = dir * speed;
-
-                _animator?.SetBool(HashIsMoving, true);
-                _animator?.SetFloat(HashMoveX, dir.x);
-                _animator?.SetFloat(HashMoveY, dir.y);
+                body.linearVelocity = Vector2.zero;
+                return;
             }
-            else if (dist < followMinDistance)
+            Transform nearest = null;
+            float distance = float.MaxValue;
+            foreach (var collider in Physics2D.OverlapCircleAll(transform.position, attackDetectRadius, enemyLayer))
             {
-                // Afasta levemente para não sobrepor o player
-                Vector2 dir = ((Vector2)(transform.position - _playerTransform.position)).normalized;
-                float speed = _definition != null ? _definition.baseMoveSpeed * 0.5f : 1.5f;
-                _rb.linearVelocity = dir * speed;
+                var enemy = collider.GetComponentInParent<EnemyController>();
+                if (enemy == null || enemy.Health.IsDead) continue;
+                float d = Vector2.Distance(transform.position, enemy.transform.position);
+                if (d < distance) { distance = d; nearest = enemy.transform; }
             }
-            else
+            if (nearest != null && distance <= attackRange && Definition.lightAttack != null)
             {
-                _rb.linearVelocity = Vector2.zero;
-                _animator?.SetBool(HashIsMoving, false);
+                state = State.Attack;
+                body.linearVelocity = Vector2.zero;
+                hitbox.Activate(Definition.lightAttack, nearest.position - transform.position);
+                animator.SetTrigger("AttackLight");
+                timer = Definition.lightAttack.duration + Definition.lightAttack.recoveryTime + extraCooldown;
+                return;
             }
+            state = nearest != null ? State.Chase : State.Follow;
+            Vector2 delta = (nearest != null ? nearest.position : player.position) - transform.position;
+            bool moving = nearest != null || delta.magnitude > followDistance;
+            body.linearVelocity = moving ? delta.normalized * Definition.baseMoveSpeed : Vector2.zero;
+            animator.SetBool("IsMoving", moving);
+            if (moving) { animator.SetFloat("MoveX", delta.normalized.x); animator.SetFloat("MoveY", delta.normalized.y); }
         }
-
-        private void StopAutonomousBehavior()
-        {
-            if (_rb != null) _rb.linearVelocity = Vector2.zero;
-            _hitbox?.Deactivate();
-            _animator?.SetBool(HashIsMoving, false);
-        }
-
-        #endregion
-
-        // ─────────────────────────────────────────────────────────────────────
-        #region Gizmos
-
-        private void OnDrawGizmosSelected()
-        {
-            Gizmos.color = new Color(0f, 1f, 0f, 0.2f);
-            Gizmos.DrawWireSphere(transform.position, followMaxDistance);
-            Gizmos.color = new Color(1f, 0.5f, 0f, 0.3f);
-            Gizmos.DrawWireSphere(transform.position, attackDetectRadius);
-        }
-
-        #endregion
     }
 }

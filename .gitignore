@@ -23,6 +23,7 @@
 .vs/
 .idea/
 *.csproj
+!Tools/RuleChecks/RuleChecks.csproj
 *.sln
 *.suo
 *.user
@@ -46,8 +47,11 @@ crashlytics-build.properties
 *.dmg
 *.pkg
 
-# Newtonsoft cache
-[Pp]ackages/
+# Packages/manifest.json e packages-lock.json fazem parte do projeto.
 
 # JetBrains Rider
 *.DotSettings.user
+
+# Saída da verificação independente de regras
+Tools/RuleChecks/bin/
+Tools/RuleChecks/obj/

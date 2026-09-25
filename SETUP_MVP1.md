@@ -1,150 +1,52 @@
-# Setup MVP 1 — Movimento do Player + Câmera Pixel-Perfect
+﻿# Setup e validação — consolidação dos MVPs 1–7
 
-Siga os passos abaixo no Unity Editor para montar e testar o Item 1 do MVP.
+Este roteiro substitui a montagem manual antiga, que cobria somente movimento.
 
----
+## Preparação
 
-## Pré-requisitos (packages necessários)
+1. Unity Hub: ativar licença e abrir a raiz deste repositório com **6000.6.0f1**.
+2. Aguardar importação e compilação. Não copiar apenas `Assets`: `Packages` e `ProjectSettings` fazem parte do projeto.
+3. O gerador da primeira abertura cria os assets ausentes. Alternativa: **Palsoul → Create Missing Prototype Assets**.
+4. Abrir `Assets/_Project/Scenes/_Boot.unity` e Play.
 
-Abra **Window → Package Manager** e confirme que estão instalados:
+O gerador não sobrescreve `_Boot` existente. Ele grava prefabs, sprites de teste, animações Idle/Walk, controles, parâmetros e pipeline URP 2D em `Assets/_Project/Prototype`. Versionar os assets gerados, seus `.meta` e `Packages/packages-lock.json` depois de validar.
 
-| Package | Versão mínima |
-|---|---|
-| **Input System** | 1.7+ |
-| **2D Pixel Perfect** | 5.0+ |
-| **Universal RP** (URP) | incluído no template URP 2D |
+## Roteiro manual
 
-> Se o Input System não estiver instalado, instale pelo Package Manager e **reinicie o Editor** quando solicitado. Na janela que pergunta sobre o backend de input, escolha **"Both"** ou **"New Input System"**.
+1. Mover com WASD/setas nas oito direções. Confirmar mesma velocidade axial e diagonal e ausência de tremulação na câmera.
+2. Pressionar Espaço para esquivar. Observar o indicador ciano de invencibilidade, consumo de stamina e intervalo até regenerar.
+3. Encontrar uma criatura à direita. Atacar com J/K, acompanhar HP e telegraph amarelo. Usar J novamente ao fim do primeiro golpe para verificar combo e consumo por golpe.
+4. Enfraquecer a criatura e usar Q a até 2,5 unidades. Observar esfera, consumo do inventário e mensagem de sucesso/falha. Falha deixa a criatura vermelha e aumenta seu dano temporariamente.
+5. Capturar duas criaturas. Retornar ao Ancoradouro à esquerda, E para abrir. Usar o mouse para selecionar **Usar forma** em uma e **Companheiro** na outra.
+6. Fechar com Esc. Conferir sprite e ataques de cada espécie. Pressionar Tab: controle muda para a posição do companheiro e a criatura anterior passa a agir autonomamente. A vida de cada uma deve ser preservada, sem gasto de stamina.
+7. Receber dano, voltar ao Ancoradouro e comprar Vigor. O protótipo inicia com **100 Éter de teste**, independente do futuro sistema de loot. Conferir o bônus de 10 HP nas duas formas; mudar de forma não pode apagar o upgrade.
+8. Descansar: curar jogador e criaturas capturadas, repor as 12 esferas iniciais e restaurar os três inimigos selvagens. Capturas e atributos permanecem.
+9. Abrir o menu: movimento, ataques, captura e troca de controle ficam bloqueados. Fechar: controles voltam a funcionar.
+10. Morrer: movimento, ataques e troca ficam bloqueados. Reiniciar Play para tentar novamente; respawn/Eco ficam para o MVP 8.
 
----
+## Testes automáticos
 
-## 1. Criar o projeto Unity (se ainda não criado)
+Executar `Tools/run_unity_checks.ps1`, ou usar **Window → General → Test Runner → EditMode → Run All**. Os testes de integração carregam `_Boot`, entram no Play Mode e voltam ao Editor ao terminar.
 
-1. Unity Hub → **New Project**
-2. Template: **2D (URP)**
-3. Nome: `PalSoul`
-4. Copie (ou clone) a pasta `Assets/_Project` gerada pelos scripts para dentro do projeto.
+Cobertura executada: resultados fixos de captura, tiers, status e raridade; consumo de esfera; isolamento do bestiário por sessão; vida/posição/moveset do squad; custo de stamina na troca; persistência de Vigor entre formas; rejeição de upgrade não implementado; descanso/reset; bloqueio de captura/troca ao morrer ou abrir menu.
 
----
+A aparência, sensação do combate, movimentação por controle e ausência de shimmer exigem também o roteiro manual.
 
-## 2. Criar o ScriptableObject de Movimento
+## Evidência desta sessão — 25/09/2026
 
-1. No **Project window**, navegue até `Assets/_Project/ScriptableObjects/Player/`
-2. Clique com botão direito → **Create → Palsoul → Player Movement Data**
-3. Nomeie como `PlayerMovementData`
-4. Valores recomendados para teste:
-   - **Move Speed:** `5`
-   - **Deceleration:** `0.85`
+- 15 verificações de `CaptureRules.cs` executadas com .NET: passaram.
+- Compilação externa das assemblies de runtime, editor e testes: ver `Logs/Compile/result.txt`.
+- Cena `_Boot`, prefabs, parâmetros e controles gerados no Unity 6000.6.0f1, com referências verificadas.
+- **21/21 testes Unity aprovados**: 12 casos de captura e 9 testes de integração entrando em Play Mode. Relatório em `Logs/test-results.xml` (pasta local ignorada pelo Git), execução de 25/09/2026 às 09:58 BRT.
+- Teclado simulado confirma movimento axial/diagonal com mesma velocidade, custo de stamina da esquiva e janela de invencibilidade. O teste configura temporariamente o foco do Input System para execução sem janela e restaura as opções ao terminar.
+- Todos os assets possuem `.meta`; nenhum GUID duplicado encontrado.
+- Cobertura adicional: combo com cobrança por golpe, fúria sem dano duplicado por colliders, invencibilidade e rejeição de gasto inválido de stamina.
+- Corrigido o gerador para criar a cena antes dos ScriptableObjects, evitando descarregar referências durante a geração.
+- Corrigida a preparação dos testes: avanço explícito do tempo do jogo e sincronização de teleporte com física.
+- O erro de licença de 21/09 foi superado nesta sessão.
 
----
+Avaliação visual, câmera sem shimmer, controle físico e sensação do combate continuam pendentes do roteiro manual. Testes em batch sem gráficos não comprovam esses critérios.
 
-## 3. Criar o Input Actions Asset
+As novas regras de 151 entradas, linhagens com duas ou três evoluções, duas alternativas na terceira evolução de pelo menos 30 criaturas e dez elementos (incluindo tipos duplos) estão no GDD. Ainda não são comportamentos implementados nem fazem parte deste roteiro de validação dos MVPs 1–7.
 
-1. No **Project window**, navegue até `Assets/_Project/Settings/`
-2. Clique com botão direito → **Create → Input Actions**
-3. Nomeie como `InputActions`
-4. Dê duplo clique para abrir o editor de Input Actions
-5. Adicione um **Action Map** chamado `Player`
-6. Dentro de `Player`, adicione uma **Action** chamada `Move`:
-   - Action Type: **Value**
-   - Control Type: **Vector 2**
-7. Clique em `+` em Bindings e adicione:
-   - **2D Vector Composite** (para teclado WASD/setas)
-     - Up: `W` / `Arrow Up`
-     - Down: `S` / `Arrow Down`
-     - Left: `A` / `Arrow Left`
-     - Right: `D` / `Arrow Right`
-   - **Left Stick** (gamepad)
-8. Clique em **Save Asset** (canto superior esquerdo do editor)
-
----
-
-## 4. Criar o Animator Controller do Player
-
-1. Em `Assets/_Project/Art/Characters/`, clique com botão direito → **Create → Animator Controller**
-2. Nomeie como `PlayerAnimator`
-3. Abra o Animator (duplo clique)
-4. Crie dois estados: **Idle** e **Walk** (podem ser clips vazios por agora)
-5. Adicione os parâmetros:
-   - `IsMoving` — **Bool**
-   - `MoveX` — **Float**
-   - `MoveY` — **Float**
-6. Adicione transição **Idle → Walk** com condição `IsMoving = true` (Has Exit Time: off)
-7. Adicione transição **Walk → Idle** com condição `IsMoving = false` (Has Exit Time: off)
-
----
-
-## 5. Montar o Prefab do Player
-
-1. Crie um **GameObject vazio** na cena e nomeie `Player`
-2. Adicione os componentes abaixo:
-
-| Componente | Configuração |
-|---|---|
-| **Sprite Renderer** | Qualquer sprite de placeholder (ex.: quadrado branco) |
-| **Rigidbody2D** | Body Type: Dynamic · Gravity Scale: **0** · Collision Detection: Continuous · Freeze Rotation Z: ✓ |
-| **CapsuleCollider2D** | Ajuste ao tamanho do sprite |
-| **Animator** | Controller: `PlayerAnimator` |
-| **Player Input** | Actions: `InputActions` · Behavior: **Send Messages** |
-| **PlayerController** | Movement Data: `PlayerMovementData` (arraste o SO) |
-
-3. Salve como prefab em `Assets/_Project/Prefabs/Player/Player.prefab`
-
----
-
-## 6. Configurar a câmera pixel-perfect
-
-1. Selecione a **Main Camera** na cena
-2. Adicione o componente **Pixel Perfect Camera** (do package 2D Pixel Perfect):
-
-| Campo | Valor |
-|---|---|
-| Assets Per Unit | `16` |
-| Reference Resolution X | `320` |
-| Reference Resolution Y | `180` |
-| Crop Frame | Both |
-| Grid Snapping | **Upscale Render Texture** |
-
-3. Adicione o script **CameraFollow**:
-   - **Target:** arraste o Transform do `Player`
-   - **Smooth Time:** `0.08`
-   - **Offset:** `(0, 0)`
-
----
-
-## 7. Criar a cena de teste
-
-1. **File → New Scene** (template: Basic 2D)
-2. Salve em `Assets/_Project/Scenes/Regions/Region_01.unity`
-3. Adicione o prefab `Player` na cena
-4. Crie um **Tilemap** simples (ou alguns sprites de chão) para ter referência visual de movimento
-5. Confirme que a Main Camera tem `CameraFollow` e `PixelPerfectCamera` configurados
-
----
-
-## 8. Testar no Editor
-
-1. Pressione **Play**
-2. Use **WASD** ou **setas** para mover o player
-
-### O que observar:
-- ✅ Player se move nas 8 direções (diagonal inclusa)
-- ✅ Ao soltar as teclas, o player desacelera suavemente (não para abruptamente)
-- ✅ A câmera segue o player sem trepidação
-- ✅ Sprites ficam em pixel-grid (sem sub-pixel blurring)
-- ✅ No **Animator** (Window → Animation → Animator), o parâmetro `IsMoving` muda entre `true`/`false` ao mover/parar
-- ✅ No **Inspector** do player enquanto em play, o gizmo ciano na Scene view aponta a direção de movimento
-
-### Verificação de console:
-- Se aparecer o erro `[PlayerController] PlayerMovementSO não atribuído!`, volte ao passo 5 e arraste o SO no Inspector.
-
----
-
-## Critérios de Aceitação (seção 13 do GDD) — Item 1
-
-| Critério | Como verificar | Status |
-|---|---|---|
-| Player se move nas 8 direções | WASD/diagonal | A verificar em play |
-| Velocidade configurável via Inspector (não hardcoded) | Alterar `moveSpeed` no SO e observar diferença | A verificar em play |
-| Câmera pixel-perfect sem shimmer | Mover pela cena e observar grid dos tiles | A verificar em play |
-| State Machine transiciona Idle ↔ Moving | Parâmetro `IsMoving` no Animator | A verificar em play |
+A aprovação automatizada não substitui o aceite visual do protótipo. Parry, matriz elemental, habilidade especial, consumível de cura, arte final e salvamento não fazem parte desta entrega.

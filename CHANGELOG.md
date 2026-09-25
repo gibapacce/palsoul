@@ -6,6 +6,38 @@ Formato: `[MVP-X] Descrição curta — data`
 
 ## MVP em andamento
 
+### [MVP-1–7] Cena gerada e integração validada — 25/09/2026
+- Licença Unity funcional nesta sessão; gerados `_Boot`, prefabs, controles, parâmetros e assets de teste.
+- Corrigida ordem de criação da cena para preservar referências dos ScriptableObjects nos prefabs.
+- 21/21 testes Unity aprovados, incluindo captura, combo, fúria, squad, Vigor, descanso, bloqueios de ações, movimento por teclado e i-frames da esquiva. Também passaram 15 verificações independentes de captura e a compilação das três assemblies.
+- Testes em Editor avançam explicitamente o tempo de Play Mode e sincronizam teleporte com a física.
+- README, GDD, prompt e setup atualizados. Avaliação visual e sensação do combate continuam pendentes do roteiro manual. MVP 8 não iniciado.
+
+### [Docs] Catálogo, evolução e elementos — 25/09/2026
+- Definida meta de 151 entradas no bestiário, incluindo formas iniciais e evoluídas.
+- Definidas linhagens com duas ou três evoluções além da forma inicial, liberando novos poderes. Níveis variam por criatura; 23, 40 e 56 são exemplos.
+- Pelo menos 30 criaturas terão duas opções na terceira evolução, escolhidas pelo jogador, podendo trocar elementos ou adicionar um segundo elemento. Todas as alternativas contam no catálogo.
+- Distribuição das 151 entradas ainda precisa ser fechada: 30 linhagens independentes com bifurcação somam 150 entradas. Não foram presumidas exceções ou formas compartilhadas para acomodar a entrada restante e linhagens menores.
+- Fixados dez elementos: Água, Fogo, Eletricidade, Terra, Fantasma, Escuridão, Luz, Grama, Gelo e Dragão. Criaturas podem ter um ou dois elementos distintos, com impacto em ataques, defesas e magias.
+- Atualizados GDD, README e prompt; documentados dados futuros, critérios de aceitação e decisões de balanceamento pendentes. Nenhuma implementação de evolução ou combate elemental nesta alteração.
+- Retomada: branch `feat/mvp-7-consolidacao` com alterações locais sem commit; compilação externa registrada como aprovada, mas `_Boot` e relatório de testes Unity ausentes. A tentativa inicial falhou por licença; houve abertura posterior do Editor, cujo último registro indica uma cena sem salvar. Validação dos MVPs 1–7 continua pendente.
+
+---
+
+### [MVP-1–7] Consolidação do protótipo — 21/09/2026
+- Fixados Unity 6000.6.0f1, Input System 1.19.0, URP 17.6.0 e Test Framework 1.8.0; `Packages` deixa de ser ignorado pelo Git.
+- Adicionado gerador de cena `_Boot`, prefabs, duas espécies, sprites de teste, câmera pixel-perfect, Input Actions, HUD e parâmetros editáveis. Geração ocorre na primeira abertura ou pelo menu Palsoul; preserva cena já existente.
+- Capturas agora têm identidade e HP individuais; bestiário é clonado por sessão. Troca do squad preserva vida/posição, inicializa a espécie correta e mantém um companheiro autônomo, sem curar nem consumir stamina.
+- Ancoradouro permite escolher forma e companheiro entre capturas, cura o squad, repõe esferas e reseta selvagens. Vigor pertence ao jogador e permanece entre formas. Outros upgrades não são cobrados enquanto não implementados.
+- Corrigidos combo leve, bloqueio de ações na morte/menu, stagger do player, acerto duplicado por múltiplos colliders e aplicação da fúria ao dano. Arremesso usa uma representação visual reutilizável.
+- Fórmula de captura separada em regras puras e configuração por ScriptableObject; adicionados resultados esperados independentes e testes de integração.
+- Validação: 15 verificações das regras executadas com sucesso. Compilação externa contra bibliotecas locais do Unity disponível em `Tools/verify_compile.py`. **Editor/Play Mode e geração real de assets ainda não executados: licença Unity inativa (código 198).**
+- README, setup e prompt alinhados às 11 etapas e ao squad de duas criaturas. MVPs 8–11 permanecem pendentes.
+
+As entradas anteriores registram código criado; não representam comprovação de validação em Play Mode.
+
+---
+
 ### [MVP-7] Ancoradouro funcional — 12/09/2026
 - `EtherWallet`: `Add`, `TrySpend`, `HasEnough`, `TakeDeath` (retorna Éter perdido), `RestoreFromEco`; eventos `OnEtherChanged/OnEtherGained/OnEtherSpent`.
 - `AttributeUpgradeSO`: define 1 atributo upgradeável com `AnimationCurve` de custo por nível e `AttributeType` enum.

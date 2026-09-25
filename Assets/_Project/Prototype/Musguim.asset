@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01c04ecd3a73ce240ae9e87104c350b5, type: 3}
+  m_Name: Musguim
+  m_EditorClassIdentifier: Palsoul.Runtime::Palsoul.Core.CreatureDefinitionSO
+  creatureName: Musguim
+  loreDescription: 
+  portrait: {fileID: -8720955092268445422, guid: 73ca30b64540d1143aa30cb1655544e6, type: 3}
+  worldSprite: {fileID: -8720955092268445422, guid: 73ca30b64540d1143aa30cb1655544e6, type: 3}
+  element: {fileID: 0}
+  baseHP: 70
+  baseAttack: 12
+  baseDefense: 5
+  baseMoveSpeed: 3.6
+  rarity: 0
+  captureHPThreshold: 0.2
+  lightAttack: {fileID: 11400000, guid: 82025c921676c6443bec2c6cd5d13d1e, type: 2}
+  heavyAttack: {fileID: 11400000, guid: 941bb33cf0856674da84079044372b90, type: 2}
+  specialAbility: {fileID: 0}
+  workAffinity: 1
+  etherDrop: 8
+  animatorController: {fileID: 9100000, guid: 7c2963d4da2c75743a4f2981a83769b9, type: 2}
+  spriteScale: 1

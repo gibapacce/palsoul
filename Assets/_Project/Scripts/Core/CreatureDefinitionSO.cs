@@ -25,6 +25,7 @@ namespace Palsoul.Core
 
         [Tooltip("Sprite de retrato para a UI do Bestiário e HUD de squad.")]
         public Sprite portrait;
+        public Sprite worldSprite;
 
         [Header("Elemento")]
         [Tooltip("Elemento desta espécie. Null = Neutro/Físico.")]

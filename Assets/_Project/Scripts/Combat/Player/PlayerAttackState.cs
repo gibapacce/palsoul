@@ -38,7 +38,6 @@ namespace Palsoul.Combat
 
         // ── Combo window: intervalo de tempo (em segundos) após hitboxActiveEnd ──
         // onde um novo input de ataque leve é aceito para encadear.
-        private const float ComboWindowOffset = 0.05f;  // começa logo após o hitbox fechar
 
         // ─────────────────────────────────────────────────────────────────────
         public PlayerAttackState(PlayerController player,
@@ -110,7 +109,8 @@ namespace Palsoul.Combat
                 if (_comboQueued && _stateEnum == PlayerState.AttackLight)
                 {
                     // Encadeia próximo ataque leve sem voltar para Idle
-                    _player.TransitionTo(PlayerState.AttackLight);
+                    _player.TransitionTo(PlayerState.Idle);
+                    _player.TryExecuteAttack(PlayerState.AttackLight);
                 }
                 else
                 {
@@ -139,7 +139,7 @@ namespace Palsoul.Combat
         public void QueueCombo()
         {
             // Só aceita combo após o hitbox fechar e antes do fim da duration
-            bool inComboWindow = _hitboxFired && _timer < _attackData.duration + ComboWindowOffset;
+            bool inComboWindow = _hitboxFired && _timer < _attackData.duration + _attackData.comboWindowOffset;
             if (inComboWindow)
                 _comboQueued = true;
         }

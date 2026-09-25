@@ -48,6 +48,7 @@ namespace Palsoul.Core
         [Tooltip("Janela de recovery após o fim da animação em que o jogador não pode agir (segundos).")]
         [Min(0f)]
         public float recoveryTime = 0.1f;
+        [Min(0)] public float comboWindowOffset = .05f;
 
         [Header("Hitbox")]
         [Tooltip("Tamanho da caixa de hitbox em unidades Unity (largura × altura).")]

@@ -60,7 +60,7 @@ namespace Palsoul.Combat
         /// <param name="attack">Dados do ataque.</param>
         /// <param name="attackDirection">Direção normalizada do atacante para o alvo.</param>
         /// <param name="isStealth">True se foi ataque furtivo/pelas costas.</param>
-        public void ReceiveHit(AttackDataSO attack, Vector2 attackDirection, bool isStealth)
+        public void ReceiveHit(AttackDataSO attack, Vector2 attackDirection, bool isStealth, float damageMultiplier = 1f)
         {
             if (_healthSystem == null || _healthSystem.IsDead) return;
 
@@ -68,7 +68,8 @@ namespace Palsoul.Combat
             if (_invincibleOwner != null && _invincibleOwner.IsInvincible) return;
 
             // ── Cálculo de dano ────────────────────────────────────────────────
-            float damage = attack.baseDamage;
+            if (attack == null) return;
+            float damage = attack.baseDamage * damageMultiplier;
 
             // Multiplicador furtivo
             if (isStealth)

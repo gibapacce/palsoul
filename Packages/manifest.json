@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "com.unity.ai.assistant": "2.19.0-pre.2",
+    "com.unity.ai.inference": "2.6.1",
+    "com.unity.inputsystem": "1.19.0",
+    "com.unity.render-pipelines.universal": "17.6.0",
+    "com.unity.test-framework": "1.8.0",
+    "com.unity.modules.animation": "1.0.0",
+    "com.unity.modules.audio": "1.0.0",
+    "com.unity.modules.imageconversion": "1.0.0",
+    "com.unity.modules.imgui": "1.0.0",
+    "com.unity.modules.physics2d": "1.0.0"
+  }
+}

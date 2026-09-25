@@ -16,7 +16,6 @@ namespace Palsoul.Combat
         private readonly EnemyController _enemy;
 
         private float _attackTimer;
-        private bool  _attackStarted;
 
         // Duração de windup antes do hitbox ativar (telegraph visual)
         // Usa hitboxActiveStart do AttackDataSO como duração do "freeze" pré-ataque
@@ -27,7 +26,6 @@ namespace Palsoul.Combat
         public void Enter()
         {
             _attackTimer  = 0f;
-            _attackStarted = false;
 
             _enemy.StopMovement();
 

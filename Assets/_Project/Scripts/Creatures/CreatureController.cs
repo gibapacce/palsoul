@@ -59,7 +59,7 @@ namespace Palsoul.Creatures
         public bool IsAlerted => _enemyCtrl != null && _enemyCtrl.IsAlerted;
 
         /// <summary>True se a criatura pode ser capturada (viva e não é chefe).</summary>
-        public bool IsCapturable => _health != null && !_health.IsDead;
+        public bool IsCapturable => isActiveAndEnabled && _definition != null && _health != null && !_health.IsDead;
 
         // ── Eventos ────────────────────────────────────────────────────────────
         /// <summary>Disparado quando a criatura é capturada com sucesso.</summary>

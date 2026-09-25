@@ -73,7 +73,10 @@ namespace Palsoul.Base
             foreach (var entry in _spawnEntries)
             {
                 if (entry.instance != null)
+                {
+                    entry.instance.SetActive(false);
                     Destroy(entry.instance);
+                }
                 entry.instance = null;
             }
 
