@@ -6,6 +6,14 @@ Formato: `[MVP-X] Descrição curta — data`
 
 ## MVP em andamento
 
+### [MVP-8] Morte, Éter e Eco recuperável — 25/09/2026
+- Implementados estado de morte, retorno ao último Ancoradouro visitado, perda integral de Éter e Eco reutilizável. Nova morte apaga o valor anterior, inclusive com saldo atual zero.
+- Derrotas concedem `EnemyDataSO.etherDrop` uma vez; captura/reset não concedem Éter. Recuperação por proximidade soma o valor ao saldo sem duplicação.
+- Respawn restaura HP/stamina e squad equipado, preserva Vigor/capturas e cancela ataques, captura em voo e menu. Mundo e esferas só são restaurados ao descansar.
+- Tela de morte com Enter/Start, representação humana e minimapa relativo do Eco. Migração aditiva da cena/prefab e roteiro em `SETUP_MVP8.md`.
+- Validação: 27/27 testes Unity aprovados (12 de captura + 15 de integração), 15 verificações independentes e compilação das três assemblies. Critérios de Morte/Éter da seção 13 atendidos nos testes; avaliação visual/manual pendente. MVP 9 não iniciado.
+- A primeira execução Unity no sandbox falhou no IPC do Package Manager; execução fora do sandbox concluiu geração e testes.
+
 ### [MVP-1–7] Cena gerada e integração validada — 25/09/2026
 - Licença Unity funcional nesta sessão; gerados `_Boot`, prefabs, controles, parâmetros e assets de teste.
 - Corrigida ordem de criação da cena para preservar referências dos ScriptableObjects nos prefabs.

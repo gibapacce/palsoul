@@ -70,6 +70,10 @@ namespace Palsoul.Creatures
         private void OnDestroy() { if (bestiary != null) Destroy(bestiary); }
         private void OnDisable()
         {
+            CancelThrow();
+        }
+        public void CancelThrow()
+        {
             StopAllCoroutines();
             _isThrowing = false;
             if (projectileView != null) projectileView.gameObject.SetActive(false);

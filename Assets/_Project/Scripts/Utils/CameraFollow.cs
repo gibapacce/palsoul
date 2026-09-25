@@ -92,6 +92,7 @@ namespace Palsoul.Utils
         public void SnapToTarget()
         {
             if (target == null) return;
+            _velocity = Vector3.zero;
             transform.position = new Vector3(
                 target.position.x + offset.x,
                 target.position.y + offset.y,

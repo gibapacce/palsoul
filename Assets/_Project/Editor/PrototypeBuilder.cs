@@ -41,7 +41,7 @@ namespace Palsoul.Editor
         public static void Build()
         {
             // Existing authored scenes are never overwritten by the generator.
-            if (File.Exists(ScenePath)) { Debug.Log("Prototype already exists: " + ScenePath); return; }
+            if (File.Exists(ScenePath)) { Mvp8Setup.Upgrade(); return; }
             Directory.CreateDirectory(Root);
             Directory.CreateDirectory("Assets/_Project/Scenes");
             AssetDatabase.Refresh();
@@ -116,7 +116,7 @@ namespace Palsoul.Editor
             input.defaultActionMap = "Player";
             input.notificationBehavior = PlayerNotifications.SendMessages;
             player.AddComponent<EtherWallet>();
-            // Starting funds isolate the MVP 7 upgrade test from the future loot system.
+            // Starting test funds remain available alongside MVP 8 enemy rewards.
             Set(player.GetComponent<EtherWallet>(), "startingEther", 100f);
             player.AddComponent<PlayerProgression>();
             player.AddComponent<TransformationSystem>();
@@ -189,6 +189,7 @@ namespace Palsoul.Editor
             AssetDatabase.SaveAssets();
             EditorSceneManager.SaveScene(scene, ScenePath);
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
+            Mvp8Setup.Upgrade();
             Debug.Log("PalSoul prototype generated. Open _Boot and press Play.");
         }
 

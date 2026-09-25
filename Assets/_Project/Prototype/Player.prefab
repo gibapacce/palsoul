@@ -25,6 +25,7 @@ GameObject:
   - component: {fileID: 5387075265955893694}
   - component: {fileID: 4036074839977143935}
   - component: {fileID: 919967520117785682}
+  - component: {fileID: 8164900799539893323}
   m_Layer: 9
   m_Name: Player
   m_TagString: Player
@@ -383,6 +384,20 @@ MonoBehaviour:
   throwDuration: 0.3
   projectileView: {fileID: 4823808527594447222}
   stealthFacingThreshold: 0.3
+--- !u!114 &8164900799539893323
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4827548547688806304}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c119516f446470b4188cd0a3b05065e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Palsoul.Runtime::Palsoul.Progression.PlayerDeathSystem
+  markerPrefab: {fileID: 833095068749997284, guid: 037c45edf869c2a4cb3d2d536273b353, type: 3}
+  initialAnchor: {fileID: 0}
 --- !u!1 &8719758020844543409
 GameObject:
   m_ObjectHideFlags: 0

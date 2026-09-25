@@ -90,7 +90,7 @@ namespace Palsoul.Combat
             if (!blocked) return;
             MoveInput = Vector2.zero;
             _lightAttackBuffered = _heavyAttackBuffered = false;
-            TransitionTo(PlayerState.Idle);
+            if (!_healthSystem.IsDead) TransitionTo(PlayerState.Idle);
             _rb.linearVelocity = Vector2.zero;
         }
 
@@ -194,6 +194,7 @@ namespace Palsoul.Combat
                 PlayerState.AttackLight => _attackLightState,
                 PlayerState.AttackHeavy => _attackHeavyState,
                 PlayerState.Stagger => _staggerState,
+                PlayerState.Dead => new PlayerDeadState(this),
                 _                       => _idleState
             };
 
@@ -351,15 +352,31 @@ namespace Palsoul.Combat
 
         private void OnPlayerDeath()
         {
-            _currentState?.Exit();
+            TransitionTo(PlayerState.Dead);
             _lightAttackBuffered = _heavyAttackBuffered = false;
             MoveInput = Vector2.zero;
             // Cancela qualquer ação em andamento
             _hitbox.Deactivate();
             _rb.linearVelocity = Vector2.zero;
-            // MVP 8 adicionará a lógica completa de morte (Éter/Eco)
-            _animator.SetTrigger("Death");
             Debug.Log("[PlayerController] Player morreu.");
+        }
+
+        public void RespawnAt(Vector3 position)
+        {
+            MoveInput = Vector2.zero;
+            _lightAttackBuffered = _heavyAttackBuffered = false;
+            _hitbox.Deactivate();
+            _rb.linearVelocity = Vector2.zero;
+            transform.position = position;
+            _rb.position = position;
+            _healthSystem.SetState(_healthSystem.MaxHP, 1);
+            _staminaSystem.RestoreFull();
+            IsInvincible = false;
+            InputBlocked = false;
+            _dodgeState = new PlayerDodgeState(this, staminaData, _rb);
+            TransitionTo(PlayerState.Idle);
+            _animator.Rebind();
+            _animator.Update(0);
         }
 
         private void OnStagger(Vector2 direction)

@@ -42,7 +42,6 @@ REGRAS DE TRABALHO (obrigatórias):
    curta a cada item concluído.
 
 Antes de iniciar uma nova etapa, leia README.md, CHANGELOG.md, SETUP_MVP1.md e git-workflow.md para
-identificar o estado atual. Não reinicie pelo item 1 automaticamente. O trabalho atual
-consolida os itens 1–7. A cena _Boot e os assets foram gerados; a suíte Unity passou.
-Consultar SETUP_MVP1.md para cobertura e pendências de validação manual. O próximo item
-funcional após o aceite será o MVP 8; não avançar sem autorização do usuário.
+identificar o estado atual. Os itens 1–7 estão consolidados; o MVP 8 foi implementado
+na branch `feat/mvp-8-morte-eter-eco`, com roteiro em SETUP_MVP8.md e evidência no CHANGELOG.
+A avaliação visual continua manual. O próximo item é o MVP 9, somente após aceite do usuário.

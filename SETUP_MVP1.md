@@ -1,6 +1,6 @@
 ﻿# Setup e validação — consolidação dos MVPs 1–7
 
-Este roteiro substitui a montagem manual antiga, que cobria somente movimento.
+Este roteiro registra a consolidação dos MVPs 1–7. A continuação com morte/respawn está em [SETUP_MVP8.md](SETUP_MVP8.md).
 
 ## Preparação
 
@@ -22,7 +22,7 @@ O gerador não sobrescreve `_Boot` existente. Ele grava prefabs, sprites de test
 7. Receber dano, voltar ao Ancoradouro e comprar Vigor. O protótipo inicia com **100 Éter de teste**, independente do futuro sistema de loot. Conferir o bônus de 10 HP nas duas formas; mudar de forma não pode apagar o upgrade.
 8. Descansar: curar jogador e criaturas capturadas, repor as 12 esferas iniciais e restaurar os três inimigos selvagens. Capturas e atributos permanecem.
 9. Abrir o menu: movimento, ataques, captura e troca de controle ficam bloqueados. Fechar: controles voltam a funcionar.
-10. Morrer: movimento, ataques e troca ficam bloqueados. Reiniciar Play para tentar novamente; respawn/Eco ficam para o MVP 8.
+10. Morrer: movimento, ataques e troca ficam bloqueados. Na entrega atual, use Enter / Start para renascer e siga SETUP_MVP8.md para validar Éter e Eco.
 
 ## Testes automáticos
 
