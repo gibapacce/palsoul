@@ -59,6 +59,164 @@ namespace Palsoul.Tests
             Assert.That(squad.Equip(capture.RegisterCapture(Species("Braseco"), .7f), false), Is.True);
             return squad;
         }
+        [UnityTest] public IEnumerator DeathDropsExactBalanceAndRecoveryPaysOnlyOnce()
+        {
+            var death = player.GetComponent<PlayerDeathSystem>();
+            var wallet = player.GetComponent<EtherWallet>();
+            wallet.Add(23.75f);
+            float carried = wallet.CurrentEther;
+            Vector3 location = new(-9, -4, 0);
+            Teleport(player.GetComponent<Rigidbody2D>(), location);
+            player.TryExecuteAttack(PlayerState.AttackLight);
+            player.HealthSystem.TakeDamage(10000);
+            Assert.That(player.CurrentState, Is.EqualTo(PlayerState.Dead));
+            Assert.That(player.GetComponent<HitboxController>().IsActive, Is.False);
+            Assert.That(wallet.CurrentEther, Is.Zero);
+            Assert.That(death.Marker.Amount, Is.EqualTo(carried));
+            Assert.That(death.Marker.transform.position, Is.EqualTo(location));
+            Assert.That(death.Marker.TryRecover(), Is.False, "Dead player must not collect the Eco.");
+            Assert.That(death.Respawn(), Is.True);
+            Assert.That(death.Respawn(), Is.False);
+            Assert.That(player.CanAct, Is.True);
+            Assert.That(player.IsInvincible, Is.False);
+            Assert.That(player.HealthSystem.NormalizedHP, Is.EqualTo(1));
+            Assert.That(death.Marker.TryRecover(), Is.False, "Distant Eco must not be collected.");
+            wallet.Add(7);
+            Teleport(player.GetComponent<Rigidbody2D>(), location);
+            yield return null; // Real proximity collection, not just a direct API call.
+            Assert.That(wallet.CurrentEther, Is.EqualTo(carried + 7));
+            Assert.That(death.Marker.IsAvailable, Is.False);
+            Assert.That(death.Marker.TryRecover(), Is.False);
+        }
+
+        [UnityTest] public IEnumerator SecondDeathReplacesEcoAndZeroBalanceDestroysOldPayload()
+        {
+            var death = player.GetComponent<PlayerDeathSystem>();
+            var wallet = player.GetComponent<EtherWallet>();
+            Teleport(player.GetComponent<Rigidbody2D>(), new Vector3(-9, -4));
+            player.HealthSystem.TakeDamage(10000);
+            var marker = death.Marker;
+            death.Respawn();
+            wallet.Add(19.5f);
+            Vector3 second = new(-8, 4);
+            Teleport(player.GetComponent<Rigidbody2D>(), second);
+            player.HealthSystem.TakeDamage(10000);
+            Assert.That(death.Marker, Is.SameAs(marker), "Reuse a single marker.");
+            Assert.That(marker.Amount, Is.EqualTo(19.5f));
+            Assert.That(marker.transform.position, Is.EqualTo(second));
+            death.Respawn();
+            Teleport(player.GetComponent<Rigidbody2D>(), new Vector3(-10, -3));
+            player.HealthSystem.TakeDamage(10000);
+            Assert.That(marker.Amount, Is.Zero);
+            Assert.That(marker.IsAvailable, Is.False);
+            death.Respawn();
+            Teleport(player.GetComponent<Rigidbody2D>(), second);
+            yield return null;
+            Assert.That(wallet.CurrentEther, Is.Zero);
+        }
+
+        [UnityTest] public IEnumerator RespawnPreservesWorldCapturesUpgradesAndSquadIdentity()
+        {
+            var squad = EquipPair();
+            var active = squad.ActiveMember;
+            var passive = squad.PassiveMember;
+            var capture = player.GetComponent<CaptureSystem>();
+            var vigor = AssetDatabase.LoadAssetAtPath<AttributeUpgradeSO>(PrototypeBuilder.Root + "/Vigor.asset");
+            player.GetComponent<PlayerProgression>().TryUpgrade(vigor);
+            var enemies = Object.FindObjectsByType<EnemyController>();
+            foreach (var enemy in enemies) { enemy.enabled = false; enemy.StopMovement(); }
+            enemies[0].Health.TakeDamage(10000);
+            enemies[1].Health.TakeDamage(5);
+            float woundedHP = enemies[1].Health.CurrentHP;
+            enemies[2].GetComponent<CreatureController>().ApplyCapture();
+            capture.AddSpheres(-2);
+            int spheres = capture.SphereCount;
+            Teleport(player.GetComponent<Rigidbody2D>(), new Vector3(-9, -4));
+            player.HealthSystem.TakeDamage(10000);
+            Assert.That(squad.Companion.gameObject.activeSelf, Is.False);
+            var death = player.GetComponent<PlayerDeathSystem>();
+            death.Respawn();
+            yield return null;
+            Assert.That(squad.ActiveMember, Is.SameAs(active));
+            Assert.That(squad.PassiveMember, Is.SameAs(passive));
+            Assert.That(player.HealthSystem.MaxHP, Is.EqualTo(80));
+            Assert.That(player.HealthSystem.NormalizedHP, Is.EqualTo(1));
+            Assert.That(squad.Companion.GetComponent<HealthSystem>().NormalizedHP, Is.EqualTo(1));
+            Assert.That(Vector2.Distance(squad.Companion.transform.position, player.transform.position), Is.LessThan(3));
+            Assert.That(capture.Captured.Count, Is.EqualTo(2));
+            Assert.That(capture.SphereCount, Is.EqualTo(spheres));
+            Assert.That(enemies[0].Health.IsDead, Is.True);
+            Assert.That(enemies[1].Health.CurrentHP, Is.EqualTo(woundedHP));
+            Assert.That(enemies[2].gameObject.activeSelf, Is.False);
+            Assert.That(player.GetComponent<Rigidbody2D>().position, Is.EqualTo((Vector2)death.LastAnchor.RespawnPosition));
+            Assert.That(squad.TrySwap(), Is.True, "Controls must work after respawn.");
+            yield return null;
+            death.LastAnchor.Rest();
+            yield return null;
+            Assert.That(Object.FindObjectsByType<EnemyController>().Length, Is.EqualTo(3));
+            Assert.That(death.Marker.IsAvailable, Is.True, "Rest must not remove the Eco.");
+        }
+
+        [UnityTest] public IEnumerator RevisitingAnAnchorMakesItTheLatestCheckpoint()
+        {
+            var first = Object.FindAnyObjectByType<AnchorpointController>();
+            var second = Object.Instantiate(first.gameObject, new Vector3(-9, 4), Quaternion.identity)
+                .GetComponent<AnchorpointController>();
+            var death = player.GetComponent<PlayerDeathSystem>();
+            yield return null;
+            Teleport(player.GetComponent<Rigidbody2D>(), second.RespawnPosition);
+            yield return null;
+            Assert.That(death.LastAnchor, Is.SameAs(second));
+            Teleport(player.GetComponent<Rigidbody2D>(), new Vector3(-9, -4));
+            yield return null;
+            player.HealthSystem.TakeDamage(10000);
+            death.Respawn();
+            Assert.That(player.GetComponent<Rigidbody2D>().position, Is.EqualTo((Vector2)second.RespawnPosition));
+            yield return null;
+            Teleport(player.GetComponent<Rigidbody2D>(), first.RespawnPosition);
+            yield return null;
+            Assert.That(death.LastAnchor, Is.SameAs(first));
+            player.HealthSystem.TakeDamage(10000);
+            death.Respawn();
+            Assert.That(player.GetComponent<Rigidbody2D>().position, Is.EqualTo((Vector2)first.RespawnPosition));
+        }
+
+        [UnityTest] public IEnumerator EnemyDeathPaysOnceButCaptureAndResetDoNotPay()
+        {
+            var wallet = player.GetComponent<EtherWallet>();
+            var enemies = Object.FindObjectsByType<EnemyController>();
+            float before = wallet.CurrentEther;
+            float expected = enemies[0].Data.etherDrop;
+            enemies[0].Health.TakeDamage(10000);
+            enemies[0].Health.TakeDamage(10000);
+            enemies[1].GetComponent<CreatureController>().ApplyCapture();
+            Assert.That(wallet.CurrentEther, Is.EqualTo(before + expected));
+            Object.FindAnyObjectByType<WorldResetSystem>().ResetWorld();
+            yield return null;
+            Assert.That(wallet.CurrentEther, Is.EqualTo(before + expected));
+        }
+
+        [UnityTest] public IEnumerator DeathCancelsCaptureInFlightAndClosesAnchorMenu()
+        {
+            var capture = player.GetComponent<CaptureSystem>();
+            var target = Object.FindAnyObjectByType<CreatureController>();
+            target.GetComponent<EnemyController>().enabled = false;
+            Teleport(target.GetComponent<Rigidbody2D>(), player.transform.position + Vector3.right);
+            Assert.That(capture.TryCaptureNearest(), Is.True);
+            int spheres = capture.SphereCount;
+            var anchor = Object.FindAnyObjectByType<AnchorpointController>();
+            anchor.OpenMenu();
+            Assert.That(anchor.GetComponent<Palsoul.UI.AnchorpointMenuUI>().IsOpen, Is.True);
+            player.HealthSystem.TakeDamage(10000);
+            Assert.That(anchor.GetComponent<Palsoul.UI.AnchorpointMenuUI>().IsOpen, Is.False);
+            player.GetComponent<PlayerDeathSystem>().Respawn();
+            Teleport(target.GetComponent<Rigidbody2D>(), new Vector3(10, 4));
+            yield return WaitForGameTime(.5f);
+            Assert.That(capture.Captured.Count, Is.Zero);
+            Assert.That(capture.SphereCount, Is.EqualTo(spheres));
+            Assert.That(player.CanAct, Is.True);
+        }
+
         [UnityTest] public IEnumerator SwapPreservesIndividualHPPositionsSpeciesAndStamina()
         {
             var squad = EquipPair();

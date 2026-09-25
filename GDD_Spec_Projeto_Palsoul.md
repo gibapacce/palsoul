@@ -300,6 +300,12 @@ O protótipo usa dois indivíduos capturados distintos no squad. Cada um conserv
 
 Pendência de planejamento: parry, matriz elemental, habilidade especial e consumível de cura aparecem na visão funcional, mas não possuem etapa própria na lista incremental. Não estão entregues nesta consolidação; definir sua posição antes de considerar concluídos os critérios completos de combate da seção 13.
 
+### 12.1.2 MVP 8 — morte, Éter e Eco (25/09/2026)
+
+Implementado o retorno ao último Ancoradouro visitado, perda integral do Éter, recuperação por proximidade e substituição definitiva do Eco anterior em nova morte. Derrotas de inimigos concedem o valor de `EnemyDataSO.etherDrop`; captura e reset não concedem essa recompensa.
+
+O respawn restaura HP/stamina do jogador e HP do squad equipado, mantendo identidade, Vigor e capturas; esferas só são repostas ao descansar. Inimigos não são resetados pela morte. Tela de morte com retorno por Enter/Start e minimapa relativo do Eco. Ver SETUP_MVP8.md e CHANGELOG.md para validação. A avaliação manual e o aceite do MVP 8 seguem pendentes; MVP 9 não iniciado.
+
 ### 12.2 Fora do MVP (backlog pós-MVP)
 - Multiplayer cooperativo.
 - Produção do catálogo completo de 151 entradas e sistema de duas ou três evoluções por nível, com novos poderes por etapa e duas alternativas na terceira evolução de pelo menos 30 criaturas; etapa de implementação a planejar após fechar a distribuição do catálogo e definir os marcos de cada linhagem. Requisito do jogo completo, ainda fora da consolidação atual.

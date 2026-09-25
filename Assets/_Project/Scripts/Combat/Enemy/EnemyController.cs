@@ -169,6 +169,8 @@ namespace Palsoul.Combat
 
         private void OnDeath()
         {
+            if (PlayerTransform != null && enemyData != null)
+                PlayerTransform.GetComponent<Palsoul.Progression.EtherWallet>()?.Add(enemyData.etherDrop);
             TransitionTo(EnemyState.Death);
         }
 

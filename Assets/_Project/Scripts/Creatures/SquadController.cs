@@ -84,6 +84,34 @@ namespace Palsoul.Creatures
             if (ActiveMember != null) GetComponent<TransformationSystem>().ApplyForm(ActiveMember.definition, 1);
             SetupCompanion();
         }
+        public void SuspendForDeath()
+        {
+            SyncHealth();
+            if (companion != null)
+            {
+                companion.GetComponent<HitboxController>().Deactivate();
+                companion.GetComponent<Rigidbody2D>().linearVelocity = Vector2.zero;
+                companion.gameObject.SetActive(false);
+            }
+        }
+        public void Respawn()
+        {
+            cooldown = 0;
+            if (ActiveMember != null)
+            {
+                ActiveMember.healthRatio = 1;
+                GetComponent<TransformationSystem>().ApplyForm(ActiveMember.definition, 1);
+            }
+            if (PassiveMember != null) PassiveMember.healthRatio = 1;
+            SetupCompanion();
+            if (companion != null)
+            {
+                Vector3 position = transform.position + (Vector3)squadSpawnOffset;
+                companion.transform.position = position;
+                companion.GetComponent<Rigidbody2D>().position = position;
+                companion.gameObject.SetActive(true);
+            }
+        }
         private void OnDestroy() { if (companion != null) Destroy(companion.gameObject); }
     }
 }

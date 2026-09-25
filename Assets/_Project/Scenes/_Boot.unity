@@ -4667,6 +4667,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Palsoul.Runtime::Palsoul.UI.PrototypeHUD
   player: {fileID: 1074216877964895862}
+  ecoMapRange: 30
+  humanPortrait: {fileID: -7796864351666666146, guid: e3581cfe60c9ea84f81fab906ff2e1c3, type: 3}
 --- !u!4 &195286992
 Transform:
   m_ObjectHideFlags: 0
@@ -41474,6 +41476,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8164900799539893323, guid: b7727ec3d3d52a54287a4a27ce288433, type: 3}
+      propertyPath: initialAnchor
+      value: 
+      objectReference: {fileID: 6157733960483690564}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -41552,6 +41558,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f5ad372c6146f344baac557ddd0a35ef, type: 3}
+--- !u!114 &6157733960483690564 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5739165779263968610, guid: f5ad372c6146f344baac557ddd0a35ef, type: 3}
+  m_PrefabInstance: {fileID: 6157733960483690563}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0da67f8a10ecd994f989136a4313384e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Palsoul.Runtime::Palsoul.Base.AnchorpointController
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

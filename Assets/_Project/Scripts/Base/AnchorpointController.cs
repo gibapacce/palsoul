@@ -11,6 +11,8 @@ namespace Palsoul.Base
     public class AnchorpointController : MonoBehaviour
     {
         [SerializeField] private AnchorpointDataSO data;
+        [SerializeField] private Vector2 respawnOffset = Vector2.down;
+        public Vector3 RespawnPosition => transform.position + (Vector3)respawnOffset;
         private WorldResetSystem world;
         private AnchorpointMenuUI menu;
         private PlayerController player;
@@ -28,6 +30,7 @@ namespace Palsoul.Base
             world = FindAnyObjectByType<WorldResetSystem>();
             menu = GetComponentInChildren<AnchorpointMenuUI>();
             player = FindAnyObjectByType<PlayerController>();
+            if (player != null) player.HealthSystem.OnDeath += CloseMenu;
         }
         private void Update()
         {
@@ -35,13 +38,16 @@ namespace Palsoul.Base
             bool nearby = Vector2.Distance(transform.position, player.transform.position) <= data.interactionRadius;
             if (!nearby && inRange) CloseMenu();
             inRange = nearby;
-            if (!inRange || player.HealthSystem.IsDead) { menu.HidePrompt(); return; }
+            if (!inRange || player.HealthSystem.IsDead) { inRangeBeforeVisit = false; menu.HidePrompt(); return; }
             if (!IsDiscovered) { IsDiscovered = true; OnDiscovered?.Invoke(this); }
+            if (!inRangeBeforeVisit) player.GetComponent<PlayerDeathSystem>()?.Visit(this);
+            inRangeBeforeVisit = true;
             menu.ShowPrompt();
             if ((Keyboard.current?.eKey.wasPressedThisFrame ?? false)
                 || (Gamepad.current?.buttonSouth.wasPressedThisFrame ?? false)) OpenMenu();
         }
         public bool CanInteract => inRange && player != null && !player.HealthSystem.IsDead;
+        private bool inRangeBeforeVisit;
         public void OpenMenu()
         {
             if (!CanInteract || !player.CanAct) return;
@@ -78,5 +84,6 @@ namespace Palsoul.Base
         public float GetNextUpgradeCost(int index) => data.availableUpgrades[index].GetCostForLevel(GetAttributeLevel(index));
         public bool Equip(CapturedCreature creature, bool active) => CanInteract && Squad.Equip(creature, active);
         private void OnDisable() { if (menu != null && menu.IsOpen) CloseMenu(); }
+        private void OnDestroy() { if (player != null) player.HealthSystem.OnDeath -= CloseMenu; }
     }
 }

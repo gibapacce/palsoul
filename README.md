@@ -2,7 +2,7 @@
 
 ARPG 2D de captura e transformação em criaturas, com combate baseado em stamina e esquiva. Projeto em pré-alpha.
 
-A especificação está no [GDD](GDD_Spec_Projeto_Palsoul.md). A entrega atual consolida os **MVPs 1–7**; não inclui morte/Eco, chefe, produção ou salvamento.
+A especificação está no [GDD](GDD_Spec_Projeto_Palsoul.md). A entrega atual inclui os **MVPs 1–8**, com morte, Éter e Eco; chefe, produção e salvamento continuam pendentes.
 
 ## Visão do jogo completo — atualização de 25/09/2026
 
@@ -22,9 +22,9 @@ Esses requisitos estão documentados nas seções 5.3, 5.4, 9.5 e 12.3 do GDD e 
 3. Na primeira abertura, o editor prepara a cena e os assets do protótipo. Se a geração não iniciar, use **Palsoul → Create Missing Prototype Assets**.
 4. Abra `Assets/_Project/Scenes/_Boot.unity` e pressione Play.
 
-O gerador cria uma região pequena, três criaturas selvagens de duas espécies, jogador, companheiro, Ancoradouro, HUD, câmera pixel-perfect, Input Actions e ScriptableObjects editáveis em `Assets/_Project/Prototype/`. Uma cena existente não é sobrescrita.
+O gerador cria uma região pequena, três criaturas selvagens de duas espécies, jogador, companheiro, Ancoradouro, HUD, câmera pixel-perfect, Input Actions e ScriptableObjects editáveis em `Assets/_Project/Prototype/`. Em cenas existentes, a migração do MVP 8 acrescenta os componentes e referências ausentes, preservando o conteúdo.
 
-**Ponto de retomada — 25/09/2026:** cena `_Boot` e assets gerados no Unity 6000.6.0f1, na branch `feat/mvp-7-consolidacao`. A licença funcionou nesta sessão e a suíte automatizada passou. Consulte `SETUP_MVP1.md` para cobertura e limites. Avaliação visual da câmera, controle físico e sensação do combate permanece manual. O próximo item funcional é o MVP 8, após aceite desta consolidação.
+**Ponto de retomada — 25/09/2026:** MVP 8 implementado na branch `feat/mvp-8-morte-eter-eco`. Consulte [SETUP_MVP8.md](SETUP_MVP8.md) para o ciclo de morte e recuperação. Avaliação visual, controle físico e sensação do combate permanecem manuais. O próximo item funcional é o MVP 9, após aceite do MVP 8.
 
 Veja o [roteiro completo de validação](SETUP_MVP1.md).
 
@@ -40,7 +40,7 @@ Veja o [roteiro completo de validação](SETUP_MVP1.md).
 | Abrir Ancoradouro | E | A |
 | Fechar menu | Esc | B |
 
-O menu de protótipo usa mouse para selecionar criaturas e upgrades. O squad tem duas criaturas. A captura preserva o HP restante; descansar cura as criaturas capturadas. Trocar o controle preserva a vida e a posição de cada indivíduo, sem custo de stamina. Ao morrer, reinicie o Play; respawn e Eco pertencem ao MVP 8.
+O menu de protótipo usa mouse para selecionar criaturas e upgrades. O squad tem duas criaturas. A captura preserva o HP restante; descansar cura as criaturas capturadas. Trocar o controle preserva a vida e a posição de cada indivíduo, sem custo de stamina. Ao morrer, use Enter / Start ou o botão Renascer para retornar ao último Ancoradouro visitado. Recupere o Éter chegando ao Eco ciano; outra morte destrói o Eco anterior. Inimigos só são resetados ao descansar.
 
 ## Status por etapa
 
@@ -53,7 +53,7 @@ O menu de protótipo usa mouse para selecionar criaturas e upgrades. O squad tem
 | 5 | Captura | Fórmula e captura verificadas em testes Unity |
 | 6 | Transformação e squad | HP, posição, espécie e troca verificados |
 | 7 | Ancoradouro | Equipamento do squad, descanso e Vigor verificados |
-| 8 | Morte, Éter e Eco | Pendente |
+| 8 | Morte, Éter e Eco | Implementado; roteiro em SETUP_MVP8.md e evidência no CHANGELOG |
 | 9 | Chefe de duas fases | Pendente |
 | 10 | Produção de base | Pendente |
 | 11 | Save/Load | Pendente |

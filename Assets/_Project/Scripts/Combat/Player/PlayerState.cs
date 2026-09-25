@@ -2,7 +2,7 @@ namespace Palsoul.Combat
 {
     /// <summary>
     /// Enum com todos os estados possíveis do Player.
-    /// Novos estados (Dodge, Attack, Dead, etc.) serão adicionados nos MVPs seguintes.
+    /// Inclui o estado Dead e retorno ao Idle pelo respawn do MVP 8.
     /// </summary>
     public enum PlayerState
     {
@@ -12,6 +12,6 @@ namespace Palsoul.Combat
         AttackLight, // MVP Item 3
         AttackHeavy, // MVP Item 3
         Stagger,     // MVP Item 3
-        Dead         // MVP Item 7
+        Dead         // MVP Item 8
     }
 }
